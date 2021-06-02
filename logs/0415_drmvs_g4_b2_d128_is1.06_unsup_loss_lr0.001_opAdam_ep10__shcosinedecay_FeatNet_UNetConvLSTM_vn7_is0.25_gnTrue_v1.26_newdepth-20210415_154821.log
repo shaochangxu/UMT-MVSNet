@@ -1,0 +1,1497 @@
+start distributed ************
+
+start distributed ************
+
+start distributed ************
+
+start distributed ************
+
+use Dense Multi-scale MVSNet
+use Dense Multi-scale MVSNet
+MVSNet model , refine: True, refine_net: RefineNet,  fea_net: FeatureNet, cost_net: CostRegNet, origin_size: False, image_scale: 0.25
+cost aggregation:  0
+use Dense Multi-scale MVSNet
+MVSNet model , refine: True, refine_net: RefineNet,  fea_net: FeatureNet, cost_net: CostRegNet, origin_size: False, image_scale: 0.25
+cost aggregation:  0
+current time 20210415_154829
+creating new summary file
+MVSNet model , refine: True, refine_net: RefineNet,  fea_net: FeatureNet, cost_net: CostRegNet, origin_size: False, image_scale: 0.25
+cost aggregation:  0
+argv: ['--local_rank=0', '--dataset=dtu_yao', '--model=drmvsnet', '--batch_size=2', '--trainpath=/home/hadoop/scx/mvsnet/trainingdata/dtu_training', '--loss=unsup_loss', '--lr=0.001', '--epochs=10', '--loss_w=4', '--lr_scheduler=cosinedecay', '--optimizer=Adam', '--view_num=7', '--inverse_depth=False', '--image_scale=0.25', '--using_apex', '--reg_loss=True', '--gn=True', '--ngpu=4', '--fea_net=FeatNet', '--cost_net=UNetConvLSTM', '--trainlist=lists/dtu/train.txt', '--vallist=lists/dtu/val.txt', '--testlist=lists/dtu/test.txt', '--numdepth=128', '--interval_scale=1.06', '--logdir=./checkpoints/0415_drmvs_g4_b2_d128_is1.06_unsup_loss_lr0.001_opAdam_ep10__shcosinedecay_FeatNet_UNetConvLSTM_vn7_is0.25_gnTrue_v1.26_newdepth']
+################################  args  ################################
+mode      	train                         	<class 'str'>       
+model     	drmvsnet                      	<class 'str'>       
+device    	cuda                          	<class 'str'>       
+loss      	unsup_loss                    	<class 'str'>       
+fea_net   	FeatNet                       	<class 'str'>       
+cost_net  	UNetConvLSTM                  	<class 'str'>       
+refine    	False                         	<class 'bool'>      
+refine_net	RefineNet                     	<class 'str'>       
+dp_ratio  	0.0                           	<class 'float'>     
+inverse_depth	False                         	<class 'bool'>      
+origin_size	False                         	<class 'bool'>      
+save_depth	False                         	<class 'bool'>      
+using_apex	True                          	<class 'bool'>      
+sync_bn   	False                         	<class 'bool'>      
+opt_level 	O0                            	<class 'str'>       
+keep_batchnorm_fp32	None                          	<class 'NoneType'>  
+loss_scale	None                          	<class 'NoneType'>  
+gn        	True                          	<class 'bool'>      
+reg_loss  	True                          	<class 'bool'>      
+max_h     	512                           	<class 'int'>       
+max_w     	640                           	<class 'int'>       
+local_rank	0                             	<class 'int'>       
+light_idx 	3                             	<class 'int'>       
+cost_aggregation	0                             	<class 'int'>       
+view_num  	7                             	<class 'int'>       
+image_scale	0.25                          	<class 'float'>     
+ngpu      	4                             	<class 'int'>       
+dataset   	dtu_yao                       	<class 'str'>       
+trainpath 	/home/hadoop/scx/mvsnet/trainingdata/dtu_training	<class 'str'>       
+testpath  	/home/hadoop/scx/mvsnet/trainingdata/dtu_training	<class 'str'>       
+trainlist 	lists/dtu/train.txt           	<class 'str'>       
+vallist   	lists/dtu/val.txt             	<class 'str'>       
+testlist  	lists/dtu/test.txt            	<class 'str'>       
+epochs    	10                            	<class 'int'>       
+lr        	0.001                         	<class 'float'>     
+loss_w    	4                             	<class 'int'>       
+lrepochs  	10,12,14:2                    	<class 'str'>       
+wd        	0.0                           	<class 'float'>     
+lr_scheduler	cosinedecay                   	<class 'str'>       
+optimizer 	Adam                          	<class 'str'>       
+batch_size	2                             	<class 'int'>       
+numdepth  	128                           	<class 'int'>       
+interval_scale	1.06                          	<class 'float'>     
+loadckpt  	None                          	<class 'NoneType'>  
+logdir    	./checkpoints/0415_drmvs_g4_b2_d128_is1.06_unsup_loss_lr0.001_opAdam_ep10__shcosinedecay_FeatNet_UNetConvLSTM_vn7_is0.25_gnTrue_v1.26_newdepth	<class 'str'>       
+save_dir  	None                          	<class 'NoneType'>  
+resume    	False                         	<class 'bool'>      
+summary_freq	20                            	<class 'int'>       
+save_freq 	1                             	<class 'int'>       
+seed      	1                             	<class 'int'>       
+is_distributed	True                          	<class 'bool'>      
+########################################################################
+use Dense Multi-scale MVSNet
+MVSNet model , refine: True, refine_net: RefineNet,  fea_net: FeatureNet, cost_net: CostRegNet, origin_size: False, image_scale: 0.25
+cost aggregation:  0
+Training Phase in UNetConvLSTM: 128, 160, gn: True
+Training Phase in UNetConvLSTM: 128, 160, gn: True
+Training Phase in UNetConvLSTM: 128, 160, gn: True
+Training Phase in UNetConvLSTM: 128, 160, gn: True
+init DrMVSNet:  FeatNet ,  UNetConvLSTM ca:  0 normGN:  True
+init DrMVSNet:  FeatNet ,  UNetConvLSTM ca:  0 normGN:  True
+init DrMVSNet:  FeatNet ,  UNetConvLSTM ca:  0 normGN:  True
+Number of model parameters: 936376
+Model define:
+DrMVSNet(
+  (feature): FeatNet(
+    (conv0_0): Sequential(
+      (0): Conv2d(3, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(2, 16, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_1): Sequential(
+      (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_3): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(3, 3), dilation=(3, 3))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv): Conv2d(96, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (cost_regularization): UNetConvLSTM(
+    (cell_list): ModuleList(
+      (0): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (2): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (3): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (4): ConvLSTMCell(
+        (conv): Conv2d(40, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (deconv_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (deconv_1): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv_0): Conv2d(8, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (gatenet): Sequential(
+    (0): Sequential(
+      (0): Conv2d(32, 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (1): ResnetBlockGn(
+      (stem): Sequential(
+        (0): Sequential(
+          (0): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+          (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+          (2): ReLU(inplace=True)
+        )
+        (1): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+        (2): GroupNorm(1, 4, eps=1e-05, affine=True)
+      )
+      (relu): ReLU(inplace=True)
+    )
+    (2): Conv2d(4, 1, kernel_size=(1, 1), stride=(1, 1))
+    (3): Sigmoid()
+  )
+  (mask_net): UResVCG16(
+    (conv1_0): ConvGnReLU(
+      (conv): Conv2d(3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_0): ConvGnReLU(
+      (conv): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_0): ConvGnReLU(
+      (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_0): ConvGnReLU(
+      (conv): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv0_1): ConvGnReLU(
+      (conv): Conv2d(3, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv0_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv1_1): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv1_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_1): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv2_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_1): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv3_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_1): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv4_2): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv5_0): deConvGnReLU(
+      (conv): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_1): ConvGnReLU(
+      (conv): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv6_0): deConvGnReLU(
+      (conv): ConvTranspose2d(64, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_1): ConvGnReLU(
+      (conv): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv7_0): deConvGnReLU(
+      (conv): ConvTranspose2d(32, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_1): ConvGnReLU(
+      (conv): Conv2d(32, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv8_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 8, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_1): ConvGnReLU(
+      (conv): Conv2d(16, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv9_0): Conv2d(8, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_1): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_2): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (activate_fn): Sigmoid()
+  )
+)
+**********************
+
+optimizer: Adam 
+
+Number of model parameters: 936376
+Model define:
+start at epoch 0
+DrMVSNet(
+  (feature): FeatNet(
+    (conv0_0): Sequential(
+      (0): Conv2d(3, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(2, 16, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_1): Sequential(
+      (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_3): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(3, 3), dilation=(3, 3))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv): Conv2d(96, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (cost_regularization): UNetConvLSTM(
+    (cell_list): ModuleList(
+      (0): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (2): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (3): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (4): ConvLSTMCell(
+        (conv): Conv2d(40, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (deconv_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (deconv_1): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv_0): Conv2d(8, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (gatenet): Sequential(
+    (0): Sequential(
+      (0): Conv2d(32, 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (1): ResnetBlockGn(
+      (stem): Sequential(
+        (0): Sequential(
+          (0): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+          (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+          (2): ReLU(inplace=True)
+        )
+        (1): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+        (2): GroupNorm(1, 4, eps=1e-05, affine=True)
+      )
+      (relu): ReLU(inplace=True)
+    )
+    (2): Conv2d(4, 1, kernel_size=(1, 1), stride=(1, 1))
+    (3): Sigmoid()
+  )
+  (mask_net): UResVCG16(
+    (conv1_0): ConvGnReLU(
+      (conv): Conv2d(3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_0): ConvGnReLU(
+      (conv): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_0): ConvGnReLU(
+      (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_0): ConvGnReLU(
+      (conv): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv0_1): ConvGnReLU(
+      (conv): Conv2d(3, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv0_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv1_1): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv1_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_1): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv2_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_1): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv3_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_1): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv4_2): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv5_0): deConvGnReLU(
+      (conv): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_1): ConvGnReLU(
+      (conv): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv6_0): deConvGnReLU(
+      (conv): ConvTranspose2d(64, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_1): ConvGnReLU(
+      (conv): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv7_0): deConvGnReLU(
+      (conv): ConvTranspose2d(32, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_1): ConvGnReLU(
+      (conv): Conv2d(32, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv8_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 8, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_1): ConvGnReLU(
+      (conv): Conv2d(16, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv9_0): Conv2d(8, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_1): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_2): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (activate_fn): Sigmoid()
+  )
+)
+**********************
+
+optimizer: Adam 
+
+start at epoch 0
+init DrMVSNet:  FeatNet ,  UNetConvLSTM ca:  0 normGN:  True
+Dist Train, Let's use 4 GPUs!
+Dist Train, Let's use 4 GPUs!
+Number of model parameters: 936376
+Model define:
+Number of model parameters: 936376
+Model define:
+DrMVSNet(
+  (feature): FeatNet(
+    (conv0_0): Sequential(
+      (0): Conv2d(3, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(2, 16, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_1): Sequential(
+      (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_3): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(3, 3), dilation=(3, 3))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv): Conv2d(96, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (cost_regularization): UNetConvLSTM(
+    (cell_list): ModuleList(
+      (0): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (2): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (3): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (4): ConvLSTMCell(
+        (conv): Conv2d(40, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (deconv_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (deconv_1): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv_0): Conv2d(8, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (gatenet): Sequential(
+    (0): Sequential(
+      (0): Conv2d(32, 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (1): ResnetBlockGn(
+      (stem): Sequential(
+        (0): Sequential(
+          (0): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+          (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+          (2): ReLU(inplace=True)
+        )
+        (1): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+        (2): GroupNorm(1, 4, eps=1e-05, affine=True)
+      )
+      (relu): ReLU(inplace=True)
+    )
+    (2): Conv2d(4, 1, kernel_size=(1, 1), stride=(1, 1))
+    (3): Sigmoid()
+  )
+  (mask_net): UResVCG16(
+    (conv1_0): ConvGnReLU(
+      (conv): Conv2d(3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_0): ConvGnReLU(
+      (conv): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_0): ConvGnReLU(
+      (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_0): ConvGnReLU(
+      (conv): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv0_1): ConvGnReLU(
+      (conv): Conv2d(3, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv0_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv1_1): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv1_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_1): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv2_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_1): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv3_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_1): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv4_2): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv5_0): deConvGnReLU(
+      (conv): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_1): ConvGnReLU(
+      (conv): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv6_0): deConvGnReLU(
+      (conv): ConvTranspose2d(64, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_1): ConvGnReLU(
+      (conv): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv7_0): deConvGnReLU(
+      (conv): ConvTranspose2d(32, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_1): ConvGnReLU(
+      (conv): Conv2d(32, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv8_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 8, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_1): ConvGnReLU(
+      (conv): Conv2d(16, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv9_0): Conv2d(8, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_1): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_2): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (activate_fn): Sigmoid()
+  )
+)
+**********************
+
+optimizer: Adam 
+
+DrMVSNet(
+  (feature): FeatNet(
+    (conv0_0): Sequential(
+      (0): Conv2d(3, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(2, 16, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_1): Sequential(
+      (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv0_3): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(3, 3), dilation=(3, 3))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv1_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_1): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv2_2): Sequential(
+      (0): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(4, 32, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (conv): Conv2d(96, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (cost_regularization): UNetConvLSTM(
+    (cell_list): ModuleList(
+      (0): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (2): ConvLSTMCell(
+        (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (3): ConvLSTMCell(
+        (conv): Conv2d(48, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (4): ConvLSTMCell(
+        (conv): Conv2d(40, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (deconv_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (deconv_1): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv_0): Conv2d(8, 1, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  )
+  (gatenet): Sequential(
+    (0): Sequential(
+      (0): Conv2d(32, 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+      (2): ReLU(inplace=True)
+    )
+    (1): ResnetBlockGn(
+      (stem): Sequential(
+        (0): Sequential(
+          (0): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+          (1): GroupNorm(1, 4, eps=1e-05, affine=True)
+          (2): ReLU(inplace=True)
+        )
+        (1): Conv2d(4, 4, kernel_size=(1, 1), stride=(1, 1))
+        (2): GroupNorm(1, 4, eps=1e-05, affine=True)
+      )
+      (relu): ReLU(inplace=True)
+    )
+    (2): Conv2d(4, 1, kernel_size=(1, 1), stride=(1, 1))
+    (3): Sigmoid()
+  )
+  (mask_net): UResVCG16(
+    (conv1_0): ConvGnReLU(
+      (conv): Conv2d(3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_0): ConvGnReLU(
+      (conv): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_0): ConvGnReLU(
+      (conv): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_0): ConvGnReLU(
+      (conv): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv0_1): ConvGnReLU(
+      (conv): Conv2d(3, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv0_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv1_1): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv1_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv2_1): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv2_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv3_1): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv3_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv4_1): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv4_2): ConvGnReLU(
+      (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(16, 128, eps=1e-05, affine=True)
+    )
+    (conv5_0): deConvGnReLU(
+      (conv): ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_1): ConvGnReLU(
+      (conv): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv5_2): ConvGnReLU(
+      (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(8, 64, eps=1e-05, affine=True)
+    )
+    (conv6_0): deConvGnReLU(
+      (conv): ConvTranspose2d(64, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_1): ConvGnReLU(
+      (conv): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv6_2): ConvGnReLU(
+      (conv): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(4, 32, eps=1e-05, affine=True)
+    )
+    (conv7_0): deConvGnReLU(
+      (conv): ConvTranspose2d(32, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_1): ConvGnReLU(
+      (conv): Conv2d(32, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv7_2): ConvGnReLU(
+      (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(2, 16, eps=1e-05, affine=True)
+    )
+    (conv8_0): deConvGnReLU(
+      (conv): ConvTranspose2d(16, 8, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1), bias=False)
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_1): ConvGnReLU(
+      (conv): Conv2d(16, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv8_2): ConvGnReLU(
+      (conv): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (gn): GroupNorm(1, 8, eps=1e-05, affine=True)
+    )
+    (conv9_0): Conv2d(8, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_1): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (conv9_2): Conv2d(2, 2, kernel_size=(1, 1), stride=(1, 1))
+    (activate_fn): Sigmoid()
+  )
+)
+**********************
+
+optimizer: Adam 
+
+start at epoch 0
+Selected optimization level O0:  Pure FP32 training.
+
+Defaults for this optimization level are:
+enabled                : True
+opt_level              : O0
+cast_model_type        : torch.float32
+patch_torch_functions  : False
+keep_batchnorm_fp32    : None
+master_weights         : False
+loss_scale             : 1.0
+Processing user overrides (additional kwargs that are not None)...
+After processing overrides, optimization options are:
+enabled                : True
+opt_level              : O0
+cast_model_type        : torch.float32
+patch_torch_functions  : False
+keep_batchnorm_fp32    : None
+master_weights         : False
+loss_scale             : 1.0
+start at epoch 0
+Warning:  multi_tensor_applier fused unscale kernel is unavailable, possibly because apex was installed without --cuda_ext --cpp_ext. Using Python fallback.  Original ImportError was: ModuleNotFoundError("No module named 'amp_C'",)
+Dist Train, Let's use 4 GPUs!
+Dist Train, Let's use 4 GPUs!
+hhhhh:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset: inverse_depth False, origin_size False, light_idx:-1, image_scale:0.25, reverse: False, both: True
+hhhhh:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset: inverse_depth False, origin_size False, light_idx:-1, image_scale:0.25, reverse: False, both: True
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+hhhhh:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset: inverse_depth False, origin_size False, light_idx:-1, image_scale:0.25, reverse: False, both: True
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+hhhhh:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset: inverse_depth False, origin_size False, light_idx:-1, image_scale:0.25, reverse: False, both: True
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset train metas: 54194
+<datasets.dtu_yao.MVSDataset object at 0x7fd5700b17f0>
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset val metas: 882
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: True, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+run train()
+Epoch 0/10:
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/optim/lr_scheduler.py:136: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+Start Training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset train metas: 54194
+<datasets.dtu_yao.MVSDataset object at 0x7f1d160577f0>
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset val metas: 882
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: True, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+run train()
+Epoch 0/10:
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/optim/lr_scheduler.py:136: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+Start Training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset train metas: 54194
+<datasets.dtu_yao.MVSDataset object at 0x7f58f39b4438>
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset val metas: 882
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: True, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+run train()
+Epoch 0/10:
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/optim/lr_scheduler.py:136: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+Start Training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset train metas: 54194
+<datasets.dtu_yao.MVSDataset object at 0x7f34d0197748>
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset val metas: 882
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: False, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+dataset: inverse_depth False, origin_size False, light_idx:3, image_scale:0.25, reverse: True, both: False
+gggggg:/home/hadoop/scx/mvsnet/trainingdata/dtu_training
+dataset test metas: 49
+run train()
+Epoch 0/10:
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/optim/lr_scheduler.py:136: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+Start Training
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/functional.py:3385: UserWarning: Default grid_sample and affine_grid behavior has changed to align_corners=False since 1.3.0. Please specify align_corners=True if the old behavior is desired. See the documentation of grid_sample for details.
+  warnings.warn("Default grid_sample and affine_grid behavior has changed "
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/functional.py:3385: UserWarning: Default grid_sample and affine_grid behavior has changed to align_corners=False since 1.3.0. Please specify align_corners=True if the old behavior is desired. See the documentation of grid_sample for details.
+  warnings.warn("Default grid_sample and affine_grid behavior has changed "
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/functional.py:3385: UserWarning: Default grid_sample and affine_grid behavior has changed to align_corners=False since 1.3.0. Please specify align_corners=True if the old behavior is desired. See the documentation of grid_sample for details.
+  warnings.warn("Default grid_sample and affine_grid behavior has changed "
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/functional.py:3385: UserWarning: Default grid_sample and affine_grid behavior has changed to align_corners=False since 1.3.0. Please specify align_corners=True if the old behavior is desired. See the documentation of grid_sample for details.
+  warnings.warn("Default grid_sample and affine_grid behavior has changed "
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  warnings.warn(warning.format(ret))
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  warnings.warn(warning.format(ret))
+torch.Size([2, 128, 160])
+Traceback (most recent call last):
+  File "train.py", line 948, in <module>
+    train()
+  File "train.py", line 351, in train
+    loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary, refine= args.refine)
+  File "train.py", line 584, in train_sample
+    loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, semantic_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 876, in unsup_loss
+    simplify_loss = simplifyDis(ref_features, mask, step_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 791, in simplifyDis
+    V_before = calV(src_fea, step)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 778, in calV
+    W[:,i,:,:] = exp((-s_y*s_y - s_x * s_x) / 0.003)
+NameError: name 'exp' is not defined
+torch.Size([2, 128, 160])
+Traceback (most recent call last):
+  File "train.py", line 948, in <module>
+    train()
+  File "train.py", line 351, in train
+    loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary, refine= args.refine)
+  File "train.py", line 584, in train_sample
+    loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, semantic_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 876, in unsup_loss
+    simplify_loss = simplifyDis(ref_features, mask, step_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 791, in simplifyDis
+    V_before = calV(src_fea, step)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 778, in calV
+    W[:,i,:,:] = exp((-s_y*s_y - s_x * s_x) / 0.003)
+NameError: name 'exp' is not defined
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  warnings.warn(warning.format(ret))
+/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/nn/_reduction.py:44: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  warnings.warn(warning.format(ret))
+torch.Size([2, 128, 160])
+torch.Size([2, 128, 160])
+Traceback (most recent call last):
+  File "train.py", line 948, in <module>
+    train()
+  File "train.py", line 351, in train
+    loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary, refine= args.refine)
+  File "train.py", line 584, in train_sample
+    loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, semantic_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 876, in unsup_loss
+    simplify_loss = simplifyDis(ref_features, mask, step_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 791, in simplifyDis
+    V_before = calV(src_fea, step)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 778, in calV
+    W[:,i,:,:] = exp((-s_y*s_y - s_x * s_x) / 0.003)
+NameError: name 'exp' is not defined
+Traceback (most recent call last):
+  File "train.py", line 948, in <module>
+    train()
+  File "train.py", line 351, in train
+    loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary, refine= args.refine)
+  File "train.py", line 584, in train_sample
+    loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, semantic_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 876, in unsup_loss
+    simplify_loss = simplifyDis(ref_features, mask, step_mask)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 791, in simplifyDis
+    V_before = calV(src_fea, step)
+  File "/home/hadoop/scx/mvsnet/mvsnet/Mask_upsup_D2HC-RMVSNet-master/models/vamvsnet.py", line 778, in calV
+    W[:,i,:,:] = exp((-s_y*s_y - s_x * s_x) / 0.003)
+NameError: name 'exp' is not defined
+Traceback (most recent call last):
+  File "/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/distributed/launch.py", line 260, in <module>
+    main()
+  File "/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/lib/python3.6/site-packages/torch/distributed/launch.py", line 256, in main
+    cmd=cmd)
+subprocess.CalledProcessError: Command '['/home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/bin/python', '-u', 'train.py', '--local_rank=3', '--dataset=dtu_yao', '--model=drmvsnet', '--batch_size=2', '--trainpath=/home/hadoop/scx/mvsnet/trainingdata/dtu_training', '--loss=unsup_loss', '--lr=0.001', '--epochs=10', '--loss_w=4', '--lr_scheduler=cosinedecay', '--optimizer=Adam', '--view_num=7', '--inverse_depth=False', '--image_scale=0.25', '--using_apex', '--reg_loss=True', '--gn=True', '--ngpu=4', '--fea_net=FeatNet', '--cost_net=UNetConvLSTM', '--trainlist=lists/dtu/train.txt', '--vallist=lists/dtu/val.txt', '--testlist=lists/dtu/test.txt', '--numdepth=128', '--interval_scale=1.06', '--logdir=./checkpoints/0415_drmvs_g4_b2_d128_is1.06_unsup_loss_lr0.001_opAdam_ep10__shcosinedecay_FeatNet_UNetConvLSTM_vn7_is0.25_gnTrue_v1.26_newdepth']' returned non-zero exit status 1.
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
