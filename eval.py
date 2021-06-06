@@ -25,42 +25,10 @@ import gc
 cudnn.benchmark = True
 
 parser = argparse.ArgumentParser(description='Predict depth, filter, and fuse. May be different from the original implementation')
-parser.add_argument('--model', default='mvsnet', help='select model')
-
-parser.add_argument('--inverse_cost_volume', action='store_true', help='need to multiply -1 with cost volume')
-parser.add_argument('--fea_net', default='FeatureNet', help='feature extractor network')
-parser.add_argument('--cost_net', default='CostRegNet', help='cost volume network')
-parser.add_argument('--refine_net', default='RefineNet', help='refinement network')
-
-parser.add_argument('--dp_ratio', type=float, default=0.0, help='learning rate')
-
-parser.add_argument('--inverse_depth', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--origin_size', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--refine', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--save_depth', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--fusion', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--syncbn', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--return_depth', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=True)
 
 parser.add_argument('--max_h', type=int, default=512, help='Maximum image height when training')
 parser.add_argument('--max_w', type=int, default=960, help='Maximum image width when training.')
 parser.add_argument('--image_scale', type=float, default=1.0, help='pred depth map scale') # 0.5
-parser.add_argument('--reg_loss', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-
-parser.add_argument('--gn', help='Use gn as normlization".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--light_idx', type=int, default=3, help='select while in test')
-parser.add_argument('--cost_aggregation', type=int, default=0, help='cost aggregation method, default: 0')
-parser.add_argument('--view_num', type=int, default=6, help='training view num setting')
-parser.add_argument('--ngpu', type=int, default=1, help='gpu size')
 
 parser.add_argument('--dataset', default='data_eval_transform', help='select dataset')
 parser.add_argument('--testpath', help='testing data path')
@@ -74,14 +42,12 @@ parser.add_argument('--pyramid', type=int, default=0, help='process the pyramid 
 
 parser.add_argument('--loadckpt', default=None, help='load a specific checkpoint')
 parser.add_argument('--outdir', default='./outputs', help='output dir')
-parser.add_argument('--display', action='store_true', help='display depth images and masks')
 
 # parse arguments and check
 args = parser.parse_args()
 print_args(args)
 
-model_name = str.split(args.loadckpt, '/')[-2] + '_' + str.split(args.loadckpt, '/')[-1]
-save_dir = os.path.join(args.outdir, model_name)
+save_dir = args.outdir
 if not os.path.exists(save_dir):
         print('save dir', save_dir)
         os.makedirs(save_dir)
@@ -99,7 +65,6 @@ def read_camera_parameters(filename):
     intrinsics[:2, :] /= 4
     return intrinsics, extrinsics
 
-
 # read an image
 def read_img(filename):
     img = Image.open(filename)
@@ -107,18 +72,15 @@ def read_img(filename):
     np_img = np.array(img, dtype=np.float32) / 255.
     return np_img
 
-
 # read a binary mask
 def read_mask(filename):
     return read_img(filename) > 0.5
-
 
 # save a binary mask
 def save_mask(filename, mask):
     assert mask.dtype == np.bool
     mask = mask.astype(np.uint8) * 255
     Image.fromarray(mask).save(filename)
-
 
 # read a pair file, [(ref_view1, [src_view1-1, ...]), (ref_view2, [src_view2-1, ...]), ...]
 def read_pair_file(filename):
@@ -129,43 +91,23 @@ def read_pair_file(filename):
         for view_idx in range(num_viewpoint):
             ref_view = int(f.readline().rstrip())
             src_views = [int(x) for x in f.readline().rstrip().split()[1::2]]
+            src_views = src_views[:7]
             data.append((ref_view, src_views))
     return data
-
 
 # run MVS model to save depth maps and confidence maps
 def save_depth():
     # dataset, dataloader
-    
     MVSDataset = find_dataset_def(args.dataset)
-    if 'transform' in args.dataset:
-        test_dataset = MVSDataset(args.testpath, args.testlist, "test", 7, args.numdepth, args.interval_scale, args.inverse_depth, 
+    test_dataset = MVSDataset(args.testpath, args.testlist, "test", 7, args.numdepth, args.interval_scale, args.inverse_depth, 
                     adaptive_scaling=True, max_h=args.max_h, max_w=args.max_w, sample_scale=1, base_image_size=8)
-    else:
-        test_dataset = MVSDataset(args.testpath, args.testlist, "test", 7, args.numdepth, args.interval_scale, args.inverse_depth, 
-                    adaptive_scaling=True, max_h=args.max_h, max_w=args.max_w, sample_scale=1, base_image_size=8, pyramid=args.pyramid)
-                    #args.pyramid)
+    
     TestImgLoader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=0, drop_last=False)
 
     # model
-    if args.model == 'mvsnet':
-        print('use MVSNet')
-        model = MVSNet(refine=args.refine, fea_net=args.fea_net, cost_net=args.cost_net,
-                refine_net=args.refine_net, origin_size=args.origin_size, cost_aggregation=args.cost_aggregation, dp_ratio=args.dp_ratio)
-    elif args.model == 'drmvsnet':
-        print('use Dense Multi-scale MVSNet')
-        if 'transform' in args.dataset:
-            model = DrMVSNet(refine=args.refine, fea_net=args.fea_net, cost_net=args.cost_net,
-                refine_net=args.refine_net, origin_size=args.origin_size, cost_aggregation=args.cost_aggregation,
-                dp_ratio=args.dp_ratio, image_scale=args.image_scale, 
-                max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss, return_depth=args.return_depth, gn=args.gn)
-        else:
-            model = DrMVSNet(refine=args.refine, fea_net=args.fea_net, cost_net=args.cost_net,
-                refine_net=args.refine_net, origin_size=args.origin_size, cost_aggregation=args.cost_aggregation,
-                dp_ratio=args.dp_ratio, image_scale=args.image_scale, 
-                max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss, return_depth=args.return_depth, gn=args.gn, pyramid=args.pyramid)
-    else: 
-        print('input pre-defined model')
+    print('use Dense Multi-scale MVSNet')
+        
+    model = DrMVSNet(image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w)
 
     # load checkpoint file specified by args.loadckpt
     print("loading model {}".format(args.loadckpt))
@@ -175,9 +117,6 @@ def save_depth():
     model = nn.DataParallel(model)
     model.cuda()
 
-    #model_dict = state_dict['model']
-    #pre_dict = {k[7:]: v for k, v in model_dict.items()}
-    #model.load_state_dict(pre_dict)
     model.eval()
     
     count = -1
@@ -199,11 +138,11 @@ def save_depth():
                 print('avg time:', total_time / 50) 
                 total_time = 0
                 
-            if 'High' in args.fea_net  and 'Coarse2Fine' in args.cost_net:
-                tmp_outputs = {}
-                for key, value in outputs.items():
-                    tmp_outputs[key] = value[0]
-                outputs = tmp_outputs
+            #if 'High' in args.fea_net  and 'Coarse2Fine' in args.cost_net:
+            tmp_outputs = {}
+            for key, value in outputs.items():
+                tmp_outputs[key] = value[0]
+            outputs = tmp_outputs
 
             outputs = tensor2numpy(outputs)
             del sample_cuda
@@ -277,13 +216,17 @@ def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth
     depth_diff = np.abs(depth_reprojected - depth_ref)
     relative_depth_diff = depth_diff / depth_ref
 
-    mask = np.logical_and(dist < 1, relative_depth_diff < 0.01)
+    masks=[]
+    for i in range(2,11):
+        mask = np.logical_and(dist < i/4, relative_depth_diff < i/1300)
+        masks.append(mask)
+
+    # mask = np.logical_and(dist < 1, relative_depth_diff < 0.01)
     depth_reprojected[~mask] = 0
 
-    return mask, depth_reprojected, x2d_src, y2d_src
+    return masks, mask, depth_reprojected, x2d_src, y2d_src
 
-
-def filter_depth(scan_folder, out_folder, plyfilename):
+def filter_depth(scan_folder, out_folder, plyfilename, photo_threshold):
     # the pair file
     pair_file = os.path.join(scan_folder, "pair.txt")
     # for the final point cloud
@@ -292,29 +235,52 @@ def filter_depth(scan_folder, out_folder, plyfilename):
 
     pair_data = read_pair_file(pair_file)
     nviews = len(pair_data)
-    # TODO: hardcode size
-    # used_mask = [np.zeros([296, 400], dtype=np.bool) for _ in range(nviews)]
+
+    ct2 = -1
 
     # for each reference view and the corresponding source views
     for ref_view, src_views in pair_data:
+        ct2 += 1
+
         # load the camera parameters
         ref_intrinsics, ref_extrinsics = read_camera_parameters(
             os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(ref_view)))
+
         # load the reference image
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
         # load the estimated depth of the reference view
         ref_depth_est = read_pfm(os.path.join(out_folder, 'depth_est_0/{:0>8}.pfm'.format(ref_view)))[0]
         # load the photometric mask of the reference view
         confidence = read_pfm(os.path.join(out_folder, 'confidence_0/{:0>8}.pfm'.format(ref_view)))[0]
-        photo_mask = confidence > 0.8
+        
+        scale=float(confidence.shape[0])/ref_img.shape[0]
+        index=int((int(ref_img.shape[1]*scale)-confidence.shape[1])/2)
+        flag=0
+        if (confidence.shape[1]/ref_img.shape[1]>scale):
+            scale=float(confidence.shape[1])/ref_img.shape[1]
+            index=int((int(ref_img.shape[0]*scale)-confidence.shape[0])/2)
+            flag=1
+
+        ref_img=cv2.resize(ref_img,(int(ref_img.shape[1]*scale),int(ref_img.shape[0]*scale)))
+        if (flag==0):
+            ref_img=ref_img[:,index:ref_img.shape[1]-index,:]
+        else:
+            ref_img=ref_img[index:ref_img.shape[0]-index,:,:]
+
+        photo_mask = confidence > photo_threshold
 
         all_srcview_depth_ests = []
-        all_srcview_x = []
-        all_srcview_y = []
-        all_srcview_geomask = []
+        # all_srcview_x = []
+        # all_srcview_y = []
+        # all_srcview_geomask = []
 
         # compute the geometric mask
         geo_mask_sum = 0
+        geo_mask_sums = []
+        n = 1
+        for src_view in src_views:
+          n+=1
+        ct = 0
         for src_view in src_views:
             # camera parameters of the source view
             src_intrinsics, src_extrinsics = read_camera_parameters(
@@ -322,59 +288,57 @@ def filter_depth(scan_folder, out_folder, plyfilename):
             # the estimated depth of the source view
             src_depth_est = read_pfm(os.path.join(out_folder, 'depth_est_0/{:0>8}.pfm'.format(src_view)))[0]
 
-            geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics, ref_extrinsics,
+            masks, geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics, ref_extrinsics,
                                                                       src_depth_est,
                                                                       src_intrinsics, src_extrinsics)
+            if (ct==1):
+                for i in range(2,n):
+                    geo_mask_sums.append(masks[i-2].astype(np.int32))
+            else :
+                for i in range(2,n):
+                    geo_mask_sums[i-2]+=masks[i-2].astype(np.int32)
+
             geo_mask_sum += geo_mask.astype(np.int32)
             all_srcview_depth_ests.append(depth_reprojected)
-            all_srcview_x.append(x2d_src)
-            all_srcview_y.append(y2d_src)
-            all_srcview_geomask.append(geo_mask)
+            # all_srcview_x.append(x2d_src)
+            # all_srcview_y.append(y2d_src)
+            # all_srcview_geomask.append(geo_mask)
+
+        for i in range (2,n):
+            geo_mask=np.logical_or(geo_mask,geo_mask_sums[i-2]>=i)
+            print(geo_mask.mean())
 
         depth_est_averaged = (sum(all_srcview_depth_ests) + ref_depth_est) / (geo_mask_sum + 1)
         # at least 3 source views matched
-        geo_mask = geo_mask_sum >= 3
+        geo_mask = geo_mask_sum >= n
         final_mask = np.logical_and(photo_mask, geo_mask)
 
-        os.makedirs(os.path.join(out_folder, "mask"), exist_ok=True)
-        save_mask(os.path.join(out_folder, "mask/{:0>8}_photo.png".format(ref_view)), photo_mask)
-        save_mask(os.path.join(out_folder, "mask/{:0>8}_geo.png".format(ref_view)), geo_mask)
-        save_mask(os.path.join(out_folder, "mask/{:0>8}_final.png".format(ref_view)), final_mask)
+        if (not isinstance(geo_mask, bool)):
+            final_mask = np.logical_and(photo_mask, geo_mask)
+            
+            os.makedirs(os.path.join(out_folder, "mask"), exist_ok=True)
 
-        print("processing {}, ref-view{:0>2}, photo/geo/final-mask:{}/{}/{}".format(scan_folder, ref_view,
-                                                                                    photo_mask.mean(),
-                                                                                    geo_mask.mean(), final_mask.mean()))
+            save_mask(os.path.join(out_folder, "mask/{:0>8}_photo.png".format(ref_view)), photo_mask)
+            save_mask(os.path.join(out_folder, "mask/{:0>8}_geo.png".format(ref_view)), geo_mask)
+            save_mask(os.path.join(out_folder, "mask/{:0>8}_final.png".format(ref_view)), final_mask)
 
-        if args.display:
-            import cv2
-            cv2.imshow('ref_img', ref_img[:, :, ::-1])
-            cv2.imshow('ref_depth', ref_depth_est / 800)
-            cv2.imshow('ref_depth * photo_mask', ref_depth_est * photo_mask.astype(np.float32) / 800)
-            cv2.imshow('ref_depth * geo_mask', ref_depth_est * geo_mask.astype(np.float32) / 800)
-            cv2.imshow('ref_depth * mask', ref_depth_est * final_mask.astype(np.float32) / 800)
-            cv2.waitKey(0)
+            print("processing {}, ref-view{:0>2}, photo/geo/final-mask:{}/{}/{}".format(scan_folder, ref_view, photo_mask.mean(),
+                                                                                        geo_mask.mean(),
+                                                                                        final_mask.mean()))
 
-        height, width = depth_est_averaged.shape[:2]
-        x, y = np.meshgrid(np.arange(0, width), np.arange(0, height))
-        # valid_points = np.logical_and(final_mask, ~used_mask[ref_view])
-        valid_points = final_mask
-        print("valid_points", valid_points.mean())
-        x, y, depth = x[valid_points], y[valid_points], depth_est_averaged[valid_points]
-        color = ref_img[:, :, :][valid_points]  # hardcoded for DTU dataset
-        xyz_ref = np.matmul(np.linalg.inv(ref_intrinsics),
-                            np.vstack((x, y, np.ones_like(x))) * depth)
-        xyz_world = np.matmul(np.linalg.inv(ref_extrinsics),
-                              np.vstack((xyz_ref, np.ones_like(x))))[:3]
-        vertexs.append(xyz_world.transpose((1, 0)))
-        vertex_colors.append((color * 255).astype(np.uint8))
-
-        # # set used_mask[ref_view]
-        # used_mask[ref_view][...] = True
-        # for idx, src_view in enumerate(src_views):
-        #     src_mask = np.logical_and(final_mask, all_srcview_geomask[idx])
-        #     src_y = all_srcview_y[idx].astype(np.int)
-        #     src_x = all_srcview_x[idx].astype(np.int)
-        #     used_mask[src_view][src_y[src_mask], src_x[src_mask]] = True
+            height, width = depth_est_averaged.shape[:2]
+            x, y = np.meshgrid(np.arange(0, width), np.arange(0, height))
+            # valid_points = np.logical_and(final_mask, ~used_mask[ref_view])
+            valid_points = final_mask
+            print("valid_points", valid_points.mean())
+            x, y, depth = x[valid_points], y[valid_points], depth_est_averaged[valid_points]
+            color = ref_img[:, :, :][valid_points]  # hardcoded for DTU dataset
+            xyz_ref = np.matmul(np.linalg.inv(ref_intrinsics),
+                                np.vstack((x, y, np.ones_like(x))) * depth)
+            xyz_world = np.matmul(np.linalg.inv(ref_extrinsics),
+                                np.vstack((xyz_ref, np.ones_like(x))))[:3]
+            vertexs.append(xyz_world.transpose((1, 0)))
+            vertex_colors.append((color * 255).astype(np.uint8))
 
     vertexs = np.concatenate(vertexs, axis=0)
     vertex_colors = np.concatenate(vertex_colors, axis=0)
@@ -394,19 +358,15 @@ def filter_depth(scan_folder, out_folder, plyfilename):
 
 if __name__ == '__main__':
     # step1. save all the depth maps and the masks in outputs directory
-    if args.save_depth:
-        print('save depth *******************\n')
-        save_depth()
-    
-    if args.fusion:
-        print('fusion ************************\n')
-        with open(args.testlist) as f:
-            scans = f.readlines()
-            scans = [line.rstrip() for line in scans]
+    save_depth()
 
-        for scan in scans:
-            scan_id = int(scan[4:])
-            scan_folder = os.path.join(args.testpath, scan)
-            out_folder = os.path.join(save_dir, scan)
-            # step2. filter saved depth maps with photometric confidence maps and geometric constraints
-            filter_depth(scan_folder, out_folder, os.path.join(save_dir, 'mvsnet{:0>3}_l3.ply'.format(scan_id)))
+    with open(args.testlist) as f:
+        scans = f.readlines()
+        scans = [line.rstrip() for line in scans]
+
+    photo_threshold = 0.35
+    for scan in scans:
+        scan_folder = os.path.join(args.testpath, scan)
+        out_folder = os.path.join(save_dir, scan)
+        # step2. filter saved depth maps with photometric confidence maps and geometric constraints
+        filter_depth(scan_folder, out_folder, os.path.join(args.outdir, scan + '.ply'), photo_threshold)

@@ -571,101 +571,33 @@ def get_propability_map(prob_volume, depth, depth_values):
 
 def mvsnet_loss(depth_est, depth_gt, mask):
     mask = mask > 0.5
-    return F.smooth_l1_loss(depth_est[mask], depth_gt[mask], size_average=True) # TODO: origin using l1 loss, why use smooth_l1_loss?
+    return F.smooth_l1_loss(depth_est[mask], depth_gt[mask], size_average=True)
 
-def mvsnet_loss_l1norm(depth_est, depth_gt, mask):
-    mask = mask > 0.5
-    return F.l1_loss(depth_est[mask], depth_gt[mask], size_average=True)
-
-def mvsnet_loss_divby_interval(depth_est, depth_gt, mask, depth_interval):
-    mask = mask > 0.5
-    #import pdb
-    #pdb.set_trace()
-    denom = torch.sum(mask, dim=(1, 2))
-    loss_fn = nn.SmoothL1Loss(size_average=False, reduce=False)
-    tmp = loss_fn(depth_est, depth_gt)
-    tmp = mask.type(tmp.type()) * tmp
-    #tmp = F.smooth_l1_loss(depth_est[mask], depth_gt[mask], size_average=False, reduce=False)
-    b_tmp = torch.sum(tmp, dim=(1,2))
-    dtype = b_tmp.type()
-    return torch.mean(b_tmp.div_(depth_interval.type(dtype)).div_(denom.type(dtype)))
-
-def mvsnet_cls_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=False): #depth_num, depth_start, depth_interval):
+def mvsnet_cls_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=False): 
     # depth_value: B * NUM
     # get depth mask
-    # caculate depth_start, depth_num, depth_interval
-    depth_start = depth_value[:, 0].view(-1, 1)
-    depth_num = depth_value.shape[-1]
-    depth_interval = (depth_value[:, 1] - depth_value[:, 0]).view(-1, 1)
-
     mask_true = mask 
-    valid_pixel_num = torch.sum(mask_true, dim=[1,2]) + 1e-6#tf.reduce_sum(mask_true, axis=[1, 2, 3]) + 1e-7
-    shape = depth_gt.shape #tf.shape(gt_depth_image) B, H, W;
-    #depth_value_mat = depth_value.repeat(shape[1], shape[2], 1, 1).permute(2,3,0,1)
-    start_mat = depth_start.repeat(shape[1], shape[2], 1, 1).permute(2,3,0,1)
-    interval_mat = depth_interval.repeat(shape[1], shape[2], 1, 1).permute(2,3,0,1)
-    #gt_index_image = torch.argmin(torch.abs(depth_value_mat-depth_gt.unsqueeze(1)), dim=1) # round; B, H, W
-    gt_index_image = (depth_gt.unsqueeze(1) - start_mat) / interval_mat
-    # print('gt_index_img: ', gt_index_image.shape)
-    # print('mask :', mask_true.shape)
-    gt_index_image = torch.mul(mask_true.unsqueeze(1), gt_index_image)# - mask_true # remove mask=0 pixel
-    gt_index_image = torch.round(gt_index_image).type(torch.long) # B, 1, H, W
-    #print('gt_idx: max {}, min {}'.format(torch.max(gt_index_image), torch.min(gt_index_image)))
-    # gt index map -> gt one hot volume (B x 1 x H x W )
-    gt_index_volume = torch.zeros(shape[0], depth_num, shape[1], shape[2]).type(mask_true.type()).scatter_(1, gt_index_image, 1)
-    # print('shape:', gt_index_volume.shape, )
-    # cross entropy image (B x D X H x W)
-    cross_entropy_image = -torch.sum(gt_index_volume * torch.log(prob_volume), dim=1).squeeze(1) # B, 1, H, W
-    
-    masked_cross_entropy_image = torch.mul(mask_true, cross_entropy_image) # valid pixel
-    masked_cross_entropy = torch.sum(masked_cross_entropy_image, dim=[1, 2])
-    #print('masked_cross_entropy', masked_cross_entropy)
-    masked_cross_entropy = torch.mean(masked_cross_entropy / valid_pixel_num) # Origin use sum : aggregate with batch
-    # winner-take-all depth map
-    wta_index_map = torch.argmax(prob_volume, dim=1, keepdim=True).type(torch.float32)
-    wta_depth_map = wta_index_map * interval_mat + start_mat
-    #wta_depth_map = torch.gather(depth_value_mat, 1, wta_index_map).squeeze(1)
+    valid_pixel_num = torch.sum(mask_true, dim=[1,2]) + 1e-6
 
-    if return_prob_map:
-        photometric_confidence = torch.max(prob_volume, dim=1)[0] # output shape dimension B * H * W
-        return masked_cross_entropy, wta_depth_map.squeeze(1), photometric_confidence
-    return masked_cross_entropy, wta_depth_map.squeeze(1)
+    shape = depth_gt.shape 
 
-#def mvsnet_cls_winner_take_all(prob_volume, depth_value): #depth_num, depth_start, depth_interval):
-
-def mvsnet_cls_loss_ori(prob_volume, depth_gt, mask, depth_value, return_prob_map=False): #depth_num, depth_start, depth_interval):
-    # depth_value: B * NUM
-    # get depth mask
-    mask_true = mask #tf.cast(tf.not_equal(gt_depth_image, 0.0), dtype='float32')
-    valid_pixel_num = torch.sum(mask_true, dim=[1,2]) + 1e-6#tf.reduce_sum(mask_true, axis=[1, 2, 3]) + 1e-7
-    #print('valid pixel:', valid_pixel_num)
-    # gt depth map -> gt index map
-    shape = depth_gt.shape #tf.shape(gt_depth_image) B, H, W;
-    #depth_end = depth_start + (tf.cast(depth_num, tf.float32) - 1) * depth_interval
-    #start_mat = tf.tile(tf.reshape(depth_start, [shape[0], 1, 1, 1]), [1, shape[1], shape[2], 1])
-
-    #interval_mat = tf.tile(tf.reshape(depth_interval, [shape[0], 1, 1, 1]), [1, shape[1], shape[2], 1])
-    #gt_index_image = tf.div(gt_depth_image - start_mat, interval_mat)
     depth_num = depth_value.shape[-1]
     depth_value_mat = depth_value.repeat(shape[1], shape[2], 1, 1).permute(2,3,0,1)
-    # print('shape: ', depth_value_mat.shape)
-    #gt_index_image = torch.argmin(torch.abs(depth_value_mat-depth_gt.unsqueeze(1)), dim=1, keepdim=True) # B, 1, H, W
+   
     gt_index_image = torch.argmin(torch.abs(depth_value_mat-depth_gt.unsqueeze(1)), dim=1) # round; B, H, W
-    # print('gt idx:', gt_index_image.shape)
+
     gt_index_image = torch.mul(mask_true, gt_index_image.type(torch.float))# - mask_true # remove mask=0 pixel
     gt_index_image = torch.round(gt_index_image).type(torch.long).unsqueeze(1) # B, 1, H, W
-    #print('gt_idx: max {}, min {}'.format(torch.max(gt_index_image), torch.min(gt_index_image)))
-    # gt index map -> gt one hot volume (B x 1 x H x W )
+
     gt_index_volume = torch.zeros(shape[0], depth_num, shape[1], shape[2]).type(mask_true.type()).scatter_(1, gt_index_image, 1)
-    # print('shape:', gt_index_volume.shape, )
+    
     # cross entropy image (B x D X H x W)
     cross_entropy_image = -torch.sum(gt_index_volume * torch.log(prob_volume), dim=1).squeeze(1) # B, 1, H, W
-    #print('cross_entropy_image', cross_entropy_image)
-    # masked cross entropy loss
+
     masked_cross_entropy_image = torch.mul(mask_true, cross_entropy_image) # valid pixel
     masked_cross_entropy = torch.sum(masked_cross_entropy_image, dim=[1, 2])
-    #print('masked_cross_entropy', masked_cross_entropy)
-    masked_cross_entropy = torch.mean(masked_cross_entropy / valid_pixel_num) # Origin use sum : aggregate with batch
+    
+    masked_cross_entropy = torch.mean(masked_cross_entropy / valid_pixel_num)
     # winner-take-all depth map
     wta_index_map = torch.argmax(prob_volume, dim=1, keepdim=True).type(torch.long)
     wta_depth_map = torch.gather(depth_value_mat, 1, wta_index_map).squeeze(1)
@@ -674,6 +606,7 @@ def mvsnet_cls_loss_ori(prob_volume, depth_gt, mask, depth_value, return_prob_ma
         photometric_confidence = torch.max(prob_volume, dim=1)[0] # output shape dimension B * H * W
         return masked_cross_entropy, wta_depth_map, photometric_confidence
     return masked_cross_entropy, wta_depth_map
+
 
 def gradient(pred):
     #print(pred.shape)
@@ -796,7 +729,6 @@ def simplifyDis(src_fea, mask, step):
     V_after = calV(src_fea * mask, step)
     loss_fn = nn.MSELoss(reduce=True, size_average=True)
     return loss_fn(V_before, V_after)
-
 
 def unsup_loss(imgs, proj_matrices, depth_est, depth_gt, semantic_mask):
 	#print("unsup")

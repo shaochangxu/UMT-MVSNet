@@ -29,37 +29,23 @@ cudnn.benchmark = True
 
 parser = argparse.ArgumentParser(description='A Official PyTorch Codebase of PVA-MVSNet')
 parser.add_argument('--mode', default='train', help='train, val or test', choices=['train', 'test', 'val', 'evaluate', 'profile'])
-parser.add_argument('--model', default='mvsnet', help='select model')
 parser.add_argument('--device', default='cuda', help='select model')
 
 parser.add_argument('--loss', default='mvsnet_loss', help='select loss', choices=['mvsnet_loss', 'mvsnet_loss_l1norm', 
                             'mvsnet_loss_divby_interval', 'mvsnet_cls_loss', 'mvsnet_cls_loss_ori', 'unsup_loss'])
 
-parser.add_argument('--fea_net', default='FeatureNet', help='feature extractor network')
-parser.add_argument('--cost_net', default='CostRegNet', help='cost volume network')
-
 parser.add_argument('--refine', help='True or False flag, input should be either "True" or "False".',
     type=ast.literal_eval, default=False)
-parser.add_argument('--refine_net', default='RefineNet', help='refinement network')
 
 parser.add_argument('--dp_ratio', type=float, default=0.0, help='learning rate')
 
 parser.add_argument('--inverse_depth', help='True or False flag, input should be either "True" or "False".',
     type=ast.literal_eval, default=False)
-parser.add_argument('--origin_size', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
-parser.add_argument('--save_depth', help='True or False flag, input should be either "True" or "False".',
-    type=ast.literal_eval, default=False)
 
 ##### Distributed Sync BN
 parser.add_argument('--using_apex', action='store_true', help='using apex, need to install apex')
 parser.add_argument('--sync_bn', action='store_true',help='enabling apex sync BN.')
-parser.add_argument('--opt-level', type=str, default="O0")
-parser.add_argument('--keep-batchnorm-fp32', type=str, default=None)
-parser.add_argument('--loss-scale', type=str, default=None)
 
-parser.add_argument('--gn', help='Use gn as normlization".',
-    type=ast.literal_eval, default=False)
 ##### for dsrmvsnet
 parser.add_argument('--reg_loss', help='True or False flag, input should be either "True" or "False".',
     type=ast.literal_eval, default=False)
@@ -67,10 +53,6 @@ parser.add_argument('--max_h', type=int, default=512, help='Maximum image height
 parser.add_argument('--max_w', type=int, default=640, help='Maximum image width when training.')
 ##### end dsrmvsnet
 
-parser.add_argument('--local_rank', type=int, default=0, help='Maximum image width when training.')
-
-parser.add_argument('--light_idx', type=int, default=3, help='select while in test')
-parser.add_argument('--cost_aggregation', type=int, default=0, help='cost aggregation method, default: 0')
 parser.add_argument('--view_num', type=int, default=3, help='training view num setting')
 
 parser.add_argument('--image_scale', type=float, default=0.25, help='pred depth map scale') # 0.5
@@ -90,7 +72,7 @@ parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
 parser.add_argument('--loss_w', type=int, default=4, help='number of epochs to train')
 
 parser.add_argument('--lrepochs', type=str, default="10,12,14:2", help='epoch ids to downscale lr and the downscale rate')
-parser.add_argument('--wd', type=float, default=0.0, help='weight decay')
+
 parser.add_argument('--lr_scheduler', default='multistep', help='lr_scheduler')
 parser.add_argument('--optimizer', default='Adam', help='optimizer')
 
@@ -99,29 +81,24 @@ parser.add_argument('--numdepth', type=int, default=192, help='the number of dep
 parser.add_argument('--interval_scale', type=float, default=1.06, help='the number of depth values') # 1.01
 
 parser.add_argument('--loadckpt', default=None, help='load a specific checkpoint')
-parser.add_argument('--logdir', default='./checkpoints/debug', help='the directory to save checkpoints/logs')
+
+parser.add_argument('--logdir', default='./logdir', help='the directory to save checkpoints/logs')
 parser.add_argument('--save_dir', default=None, help='the directory to save checkpoints/logs')
-parser.add_argument('--resume', action='store_true', help='continue to train the model')
 
 parser.add_argument('--summary_freq', type=int, default=20, help='print and summary frequency')
 parser.add_argument('--save_freq', type=int, default=1, help='save checkpoint frequency')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed')
 
-
 # parse arguments and check
 args = parser.parse_args()
-if args.resume:
-    assert args.mode == "train"
-    assert args.loadckpt is None
+
 if args.testpath is None:
     args.testpath = args.trainpath
 
-#torch.manual_seed(args.seed)
-#torch.cuda.manual_seed(args.seed)
-set_random_seed(args.seed)
+set_random_seed(1)
 device = torch.device(args.device)
 
-#using sync_bn by using nvidia-apex, need to install apex.
+#using sync_bn by using nvidia-apex, need to install apex. 半精度运算库
 if args.sync_bn:
     assert args.using_apex, "must set using apex and install nvidia-apex"
 if args.using_apex:
@@ -135,18 +112,13 @@ if args.using_apex:
 
 is_distributed = args.ngpu > 1
 
-args.is_distributed = is_distributed
-
 if is_distributed:
     print('start distributed ************\n')
-    torch.cuda.set_device(args.local_rank)
+    torch.cuda.set_device(0)
     torch.distributed.init_process_group(
         backend="nccl", init_method="env://"
     )
     synchronize()
-
-##### Save Depth
-SAVE_DEPTH = args.save_depth
 
 if (not is_distributed) or (dist.get_rank() == 0):
     # create logger for mode "train" and "testall"
@@ -163,32 +135,9 @@ if (not is_distributed) or (dist.get_rank() == 0):
     print("argv:", sys.argv[1:])
     print_args(args)
 
-    if SAVE_DEPTH:
-        if args.save_dir is None:
-            sub_dir, ckpt_name = os.path.split(args.loadckpt)
-            index = ckpt_name[6:-5] # Old_version
-            save_dir = os.path.join(sub_dir, index)
-        else:
-            save_dir = args.save_dir
-        print(os.path.exists(save_dir), ' exists', save_dir)
-        if not os.path.exists(save_dir):
-            print('save dir', save_dir)
-            os.makedirs(save_dir)
-
 # model, optimizer
-if args.model == 'mvsnet':
-    print('use MVSNet')
-    model = MVSNet(refine=args.refine, fea_net=args.fea_net, cost_net=args.cost_net,
-             refine_net=args.refine_net, origin_size=args.origin_size, cost_aggregation=args.cost_aggregation, 
-             dp_ratio=args.dp_ratio, image_scale=args.image_scale)#, gn=args.gn)
-elif args.model == 'drmvsnet':
-    print('use Dense Multi-scale MVSNet')
-    model = DrMVSNet(refine=args.refine, fea_net=args.fea_net, cost_net=args.cost_net,
-                refine_net=args.refine_net, origin_size=args.origin_size, cost_aggregation=args.cost_aggregation,
-                dp_ratio=args.dp_ratio, image_scale=args.image_scale, 
-                max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss, gn=args.gn)
-else: 
-    print('input pre-defined model')
+model = DrMVSNet(refine=args.refine, origin_size=args.origin_size, dp_ratio=args.dp_ratio, image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss)
+
 model.to(device)
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 print('Model define:')
@@ -200,9 +149,7 @@ if args.sync_bn:
     model = apex.parallel.convert_syncbn_model(model)
 
 ##### LOSS
-loss_dict = {'mvsnet_loss':mvsnet_loss, 'mvsnet_loss_l1norm':mvsnet_loss_l1norm, \
-                'mvsnet_loss_divby_interval':mvsnet_loss_divby_interval, 'mvsnet_cls_loss': mvsnet_cls_loss, \
-                'mvsnet_cls_loss_ori': mvsnet_cls_loss_ori, 'unsup_loss': unsup_loss}
+loss_dict = {'mvsnet_loss':mvsnet_loss, 'mvsnet_cls_loss': mvsnet_cls_loss, 'unsup_loss': unsup_loss}
 try:
     model_loss = loss_dict[args.loss]
 except KeyError:
@@ -211,78 +158,46 @@ except KeyError:
 ##### OPTIMIZER
 if args.optimizer == 'Adam':
     print('optimizer: Adam \n')
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.wd)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=0.01)
 elif args.optimizer == 'RAdam':
     print('optimizer: RAdam !!!! \n')
-    optimizer = RAdam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.wd)
-
+    optimizer = RAdam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=0.01)
 
 # load parameters
 start_epoch = 0
-if (args.mode == "train" and args.resume) or (args.mode == "test" and not args.loadckpt):
-    saved_models = [fn for fn in os.listdir(args.logdir) if fn.endswith(".ckpt")]
-    saved_models = sorted(saved_models, key=lambda x: int(x.split('_')[-1].split('.')[0]))
-    # use the latest checkpoint file
-    loadckpt = os.path.join(args.logdir, saved_models[-1])
-    print("resuming", loadckpt)
-    state_dict = torch.load(loadckpt)
-    model.load_state_dict(state_dict['model'])
-    optimizer.load_state_dict(state_dict['optimizer'])
-    print(optimizer)
-
-    start_epoch = state_dict['epoch'] + 1
-elif args.loadckpt:
-    # load checkpoint file specified by args.loadckpt
+if args.loadckpt:
+    # load checkpoint file specified by args.loadckpt when eval
     print("loading model {}".format(args.loadckpt))
     state_dict = torch.load(args.loadckpt)
-    ### Old Version
-    #model_dict = state_dict['model']
-    #pare_dict = {k[7:]: v for k, v in model_dict.items()}
-    #model.load_state_dict(pre_dict)
-    ###
     model.load_state_dict(state_dict['model'], strict=False)
-    # load part model to finetune
-    # for key, value in model_dict.items():
-    #     if key in model.state_dict():
-    #         model.state_dict[key] = value
-
-print("start at epoch {}".format(start_epoch))
 
 if args.using_apex:
     # Initialize Amp
     model, optimizer = amp.initialize(model, optimizer,
-                                      opt_level=args.opt_level,
-                                      keep_batchnorm_fp32=args.keep_batchnorm_fp32,
-                                      loss_scale=args.loss_scale
+                                      opt_level="O0",
+                                      keep_batchnorm_fp32=None,
+                                      loss_scale=None
                                       )
 
 #conver model to dist
 if is_distributed:
     print("Dist Train, Let's use", torch.cuda.device_count(), "GPUs!")
     model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[args.local_rank], output_device=args.local_rank,
-        # find_unused_parameters=False,
-        # this should be removed if we update BatchNorm stats
-        # broadcast_buffers=False,
+        model, device_ids=[0], output_device=0,
     )
 else:
     if torch.cuda.is_available():
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         model = nn.DataParallel(model)
 
-
-
 # dataset, dataloader
 # args.origin_size only load origin size depth, not modify Camera.txt
 MVSDataset = find_dataset_def(args.dataset)
-print("hhhhh:" + args.trainpath)
-train_dataset = MVSDataset(args.trainpath, args.trainlist, "train", args.view_num, args.numdepth, args.interval_scale, args.inverse_depth, args.origin_size, -1, args.image_scale) # Training with False, Test with inverse_depth
-print(train_dataset)
-# 0415 fix_range=True
-val_dataset = MVSDataset(args.trainpath, args.vallist, "val", 5, args.numdepth, args.interval_scale, args.inverse_depth, args.origin_size, args.light_idx, args.image_scale, reverse=False, both=False, fix_range=True) #view_num = 5, light_idx = 3
-test_dataset = MVSDataset(args.testpath, args.testlist, "test", 5, args.numdepth, 1.06, args.inverse_depth, args.origin_size, args.light_idx, args.image_scale, reverse=False, both=False, fix_range=True) # use 3
-reverse_test_dataset = MVSDataset(args.testpath, args.testlist, "test", 5, args.numdepth, 1.06, args.inverse_depth, args.origin_size, args.light_idx, args.image_scale, reverse=True, both=False, fix_range=True) # use 3
+train_dataset = MVSDataset(args.trainpath, args.trainlist, "train", args.view_num, args.numdepth, args.interval_scale, args.inverse_depth, -1, args.image_scale, have_depth=(args.loss != 'unsup_loss')) # Training with False, Test with inverse_depth
 
+val_dataset = MVSDataset(args.trainpath, args.vallist, "val", 5, args.numdepth, args.interval_scale, args.inverse_depth, 3, args.image_scale, reverse=False, both=False) #view_num = 5, light_idx = 3
+test_dataset = MVSDataset(args.testpath, args.testlist, "test", 5, args.numdepth, 1.06, args.inverse_depth, 3, args.image_scale, reverse=False, both=False)
+reverse_test_dataset = MVSDataset(args.testpath, args.testlist, "test", 5, args.numdepth, 1.06, args.inverse_depth, 3, args.image_scale, reverse=True, both=False)
 
 if is_distributed:
     train_sampler = torch.utils.data.DistributedSampler(train_dataset, num_replicas=dist.get_world_size(),
