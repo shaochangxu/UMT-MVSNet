@@ -124,7 +124,7 @@ class MVSDataset(Dataset):
                     depth_filename = os.path.join(self.datapath, 'Depths/{}_train/depth_map_{:0>4}.pfm'.format(scan, vid))
                     mask_filename = os.path.join(self.datapath, 'Depths/{}_train/depth_visual_{:0>4}.png'.format(scan, vid))
                 if i == 0:
-                    depth_name = depth_filename
+                    name = depth_filename
             
             proj_mat_filename = os.path.join(self.datapath, 'Cameras/train/{:0>8}_cam.txt').format(vid)
 
@@ -174,7 +174,7 @@ class MVSDataset(Dataset):
                 "depth_values": depth_values, # generate depth index
                 "mask": mask,
                 "depth_interval": depth_interval,
-                'name':depth_name,}
+                'name':name,}
         else:
             return {"imgs": imgs,
                 "proj_matrices": proj_matrices,

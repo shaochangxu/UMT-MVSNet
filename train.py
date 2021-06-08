@@ -85,10 +85,6 @@ parser.add_argument('--loadckpt', default=None, help='load a specific checkpoint
 parser.add_argument('--logdir', default='./logdir', help='the directory to save checkpoints/logs')
 parser.add_argument('--save_dir', default=None, help='the directory to save checkpoints/logs')
 
-parser.add_argument('--summary_freq', type=int, default=20, help='print and summary frequency')
-parser.add_argument('--save_freq', type=int, default=1, help='save checkpoint frequency')
-parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed')
-
 # parse arguments and check
 args = parser.parse_args()
 
@@ -136,7 +132,7 @@ if (not is_distributed) or (dist.get_rank() == 0):
     print_args(args)
 
 # model, optimizer
-model = DrMVSNet(refine=args.refine, origin_size=args.origin_size, dp_ratio=args.dp_ratio, image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss)
+model = DrMVSNet(refine=args.refine, dp_ratio=args.dp_ratio, image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w, reg_loss=args.reg_loss)
 
 model.to(device)
 print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
@@ -250,21 +246,12 @@ def train():
         print('Start Training')
         # training
         for batch_idx, sample in enumerate(TrainImgLoader):
-            # DEBUG
-            # print('Batch {}/{}'.format(batch_idx, len(TrainImgLoader)))
-            # continue
             start_time = time.time()
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
             do_summary = global_step % args.summary_freq == 0
-            
-            # if batch_idx > 100:
-            #     break
 
-            if 'High' in args.fea_net  and 'Coarse2Fine' in args.cost_net:
-                loss, scalar_outputs, image_outputs = train_sample_coarse2fine(sample, detailed_summary=do_summary)
-            else:
-                loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary, refine= args.refine)
-            
+            loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary)
+
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
 
@@ -281,56 +268,28 @@ def train():
 
         # checkpoint
         if (not is_distributed) or (dist.get_rank() == 0):
-            if (epoch_idx + 1) % args.save_freq == 0:
+            if (epoch_idx + 1) % 1 == 0:
                 torch.save({
                     'epoch': epoch_idx,
-                    #'model': model.state_dict(),
                     'model': model.module.state_dict(),
                     'optimizer': optimizer.state_dict()},
                     "{}/model_{:0>6}.ckpt".format(args.logdir, epoch_idx),
                     _use_new_zipfile_serialization=False)
         gc.collect()
 
-
-        # validation
-        # avg_val_scalars = DictAverageMeter()
-        # for batch_idx, sample in enumerate(ValImgLoader):
-        #     start_time = time.time()
-        #     global_step = len(ValImgLoader) * epoch_idx + batch_idx
-        #     do_summary = global_step % args.summary_freq == 0
-        #     if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-        #         loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=do_summary)
-        #     else:    
-        #         loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=do_summary, refine=args.refine)
-            
-        #     if do_summary:
-        #         save_scalars(logger, 'val', scalar_outputs, global_step)
-        #         save_images(logger, 'val', image_outputs, global_step)
-        #     avg_val_scalars.update(scalar_outputs)
-        #     del image_outputs
-        #     print('Epoch {}/{}, Iter {}/{}, val loss = {:.3f}, time = {:3f}, ame = {:3f}, thres2mm = {:3f}, thres4mm = {:3f}, thres8mm = {:3f}'.format(
-        #                         epoch_idx, args.epochs, batch_idx,
-        #                         len(ValImgLoader), loss,
-        #                         time.time() - start_time,
-        #                         scalar_outputs["abs_depth_error"], scalar_outputs["thres2mm_error"], 
-        #                         scalar_outputs["thres4mm_error"], scalar_outputs["thres8mm_error"]))
-        # (logger, 'fullval', avg_val_scalars.mean(), global_step)
-        # print("avg_val_scalars:", avg_val_scalars.mean())
-        #gc.collect()
-
-        # # # on test dataset  Nan problem
+        # on test dataset
         avg_test_scalars = DictAverageMeter()
         for batch_idx, sample in enumerate(TestImgLoader):
             start_time = time.time()
             global_step = len(TestImgLoader) * epoch_idx + batch_idx
-            do_summary = global_step % args.summary_freq == 0
-            if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-                loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=do_summary)
-            else:    
-                loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=do_summary, refine=args.refine)
+            do_summary = global_step % 20 == 0
+
+            loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=do_summary)
+ 
             if loss == 0:
                 print('Loss is zero, no valid point')
                 continue
+            
             if (not is_distributed) or (dist.get_rank() == 0):
                 if do_summary:
                     save_scalars(logger, 'test', scalar_outputs, global_step)
@@ -339,8 +298,7 @@ def train():
                                     epoch_idx, args.epochs, batch_idx,
                                     len(TestImgLoader), loss,
                                     time.time() - start_time))
-#                                    scalar_outputs["abs_depth_error"], scalar_outputs["thres2mm_error"], 
-#                                    scalar_outputs["thres4mm_error"], scalar_outputs["thres8mm_error"]))
+
                 avg_test_scalars.update(scalar_outputs)
                 del scalar_outputs, image_outputs
                 
@@ -353,11 +311,10 @@ def train():
         for batch_idx, sample in enumerate(ResTestImgLoader):
             start_time = time.time()
             global_step = len(ResTestImgLoader) * epoch_idx + batch_idx
-            do_summary = global_step % args.summary_freq == 0
-            if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-                loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=do_summary)
-            else:    
-                loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=do_summary, refine=args.refine)
+            do_summary = global_step % 20 == 0
+            
+            loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=do_summary)
+            
             if loss == 0:
                 print('Loss is zero, no valid point')
                 continue
@@ -369,8 +326,7 @@ def train():
                                     epoch_idx, args.epochs, batch_idx,
                                     len(ResTestImgLoader), loss,
                                     time.time() - start_time))
-#                                    scalar_outputs["abs_depth_error"], scalar_outputs["thres2mm_error"], 
-#                                    scalar_outputs["thres4mm_error"], scalar_outputs["thres8mm_error"]))
+
                 avg_test_scalars.update(scalar_outputs)
                 del scalar_outputs, image_outputs
                 
@@ -387,7 +343,6 @@ def forward_hook(module, input, output):
 
 
 def val():
-    global SAVE_DEPTH
     global save_dir
     print('Phase: test \n')
 
@@ -398,145 +353,51 @@ def val():
     elif args.mode == 'val':
         ImgLoader = ValImgLoader
         
-    #### HOOK
-    #modules = model.named_children()
-    # modules = model.modules()
-    # for name, module in enumerate(modules):
-    #     module.register_forward_hook(forward_hook)
-
     avg_test_scalars = DictAverageMeter()
     for batch_idx, sample in enumerate(ImgLoader):
-        # if batch_idx > 0:
-        #     break
         start_time = time.time()
-        if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-            loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=True)
-        else:    
-            loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=True, refine=args.refine)
+        
+        loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=True)
+       
         if loss == 0:
             print('Loss is zero, no valid point')
             continue
+
         avg_test_scalars.update(scalar_outputs)
 
-        if SAVE_DEPTH:
-            if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-                depth_est = image_outputs['depth_est0']
-                prob_map_est = image_outputs['photometric_confidence']
-            else:    
-                depth_est = image_outputs['depth_est']
-                prob_map_est = image_outputs['photometric_confidence']
-            depth_name = sample['name']
-            for j in range(0, len(depth_name)):
-                name_split = str.split(depth_name[j], '/')
-                sub_dir = os.path.join(save_dir, name_split[-2])
-                if not os.path.exists(sub_dir):
-                    print('make dir: ', sub_dir)
-                    os.makedirs(sub_dir)
-                save_depth_path = os.path.join(sub_dir, 'init_'+name_split[-1])
-                save_depth_png_path = os.path.join(sub_dir, 'init_'+name_split[-1][:-3]+'png')
-                save_prob_path = os.path.join(sub_dir, 'prob_'+name_split[-1])
-
-                #save_pfm(save_depth_path, depth_est[j].detach().cpu().numpy())
-                #save_pfm(save_prob_path, prob_map_est[j].detach().cpu().numpy())
-                save_pfm(save_depth_path, depth_est[j])
-                save_pfm(save_prob_path, prob_map_est[j])
-
         if (not is_distributed) or (dist.get_rank() == 0):      
-            if 'High' in args.fea_net and 'Coarse2Fine' in args.cost_net :
-                print('Iter {}/{}, val loss = {:.3f}, time = {:3f}, ame = {:3f}, thres2mm = {:3f}, thres4mm = {:3f}, thres8mm = {:3f}'.format(batch_idx, len(ImgLoader), loss,
-                                                                        time.time() - start_time, scalar_outputs["abs_depth_error0"], scalar_outputs["thres2mm_error0"], 
-                                                                        scalar_outputs["thres4mm_error0"], scalar_outputs["thres8mm_error0"]))
-            else:
-                print('Iter {}/{}, val loss = {:.3f}, time = {:3f}, ame = {:3f}, thres2mm = {:3f}, thres4mm = {:3f}, thres8mm = {:3f}'.format(batch_idx, len(ImgLoader), loss,
-                                                                        time.time() - start_time, scalar_outputs["abs_depth_error"], scalar_outputs["thres2mm_error"], 
-                                                                        scalar_outputs["thres4mm_error"], scalar_outputs["thres8mm_error"]))
+            print('Iter {}/{}, val loss = {:.3f}, time = {:3f}'.format(batch_idx, len(ImgLoader), loss,
+                                                                    time.time() - start_time))
             del scalar_outputs, image_outputs
 
             if batch_idx % 100 == 0:
                 print("Iter {}/{}, val results = {}".format(batch_idx, len(ImgLoader), avg_test_scalars.mean()))
+
     if (not is_distributed) or (dist.get_rank() == 0):
         print("avg_{}_scalars:".format(args.mode), avg_test_scalars.mean())
-
-def evaluate():
-    print('Phase: evaluate \n')
-    avg_test_scalars = DictAverageMeter()
-    for batch_idx, sample in enumerate(ValImgLoader):
-        start_time = time.time()
-        loss, scalar_outputs, image_outputs = test_load_sample(sample, detailed_summary=True)
-        avg_test_scalars.update(scalar_outputs)
-        print('Iter {}/{}, test loss = {:.3f}, time = {:3f}, ame = {:3f}, thres2mm = {:3f}, thres4mm = {:3f}, thres8mm = {:3f}'.format(batch_idx, len(ValImgLoader), loss,
-                                                                    time.time() - start_time, scalar_outputs["abs_depth_error"], scalar_outputs["thres2mm_error"], 
-                                                                    scalar_outputs["thres4mm_error"], scalar_outputs["thres8mm_error"]))
-        del scalar_outputs, image_outputs                                                            
-        if batch_idx % 100 == 0:
-            print("Iter {}/{}, test results = {}".format(batch_idx, len(ValImgLoader), avg_test_scalars.mean()))
-    print("avg_test_scalars:", avg_test_scalars.mean())
-
 
 def train_sample(sample, detailed_summary=False, refine=False):
     model.train()
     optimizer.zero_grad()
 
     sample_cuda = tocuda(sample)
-    depth_gt = sample_cuda['depth']
-    mask = sample_cuda['mask']
+    mask = sample_cuda["mask"]
     depth_interval = sample_cuda["depth_interval"]
     depth_value = sample_cuda["depth_values"]
     outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
 
-    if args.loss == 'mvsnet_cls_loss' or args.loss == 'mvsnet_cls_loss_ori':
+    if args.loss == 'mvsnet_cls_loss':
+        depth_gt = sample_cuda["depth"]
         prob_volume = outputs['prob_volume']
-        #print('prob shape:', prob_volume.shape,  ' gt: ', depth_gt.shape, 
-        #    ' mask:', mask.shape, 'value:', depth_value.shape)
-        #loss, depth_est = model_loss(prob_volume, depth_gt, mask, depth_value) # 11 test 46 idx : depth range fault
-    elif args.loss == 'mvsnet_loss_divby_interval':
-        depth_est = outputs["depth"]
-        #loss = model_loss(depth_est, depth_gt, mask, depth_interval)
+        loss, depth_est = model_loss(prob_volume, depth_gt, mask, depth_value) # 11 test 46 idx : depth range fault
     elif args.loss == 'unsup_loss':
-        depth_est = outputs['depth']
-        semantic_mask = outputs['semantic_mask']
-        #loss, depth_est = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], prob_volume, depth_value)
-        loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, semantic_mask)
+        depth_est = outputs["depth"]
+        semantic_mask = outputs["semantic_mask"]
+        loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, semantic_mask)
     else:
+        depth_gt = sample_cuda["depth"]
         depth_est = outputs["depth"]
         loss = model_loss(depth_est, depth_gt, mask)
-    # if refine:
-    #     if args.image_scale == 0.5:
-    #         assert 'Scale2' in args.fea_net
-    #         half_depth_gt = outputs['half_depth']
-    #         if args.refine_kind == 0:
-    #             refine_depth_est = outputs["refined_depth"]
-    #             if args.loss == 'mvsnet_loss_divby_interval':
-    #                 refine_loss = model_loss(refine_depth_est, half_depth_gt, mask, depth_interval)
-    #             else:
-    #                 refine_loss = model_loss(refine_depth_est, half_depth_gt, mask)
-    #             init_loss = loss
-    #             loss = args.rw * init_loss + refine_loss
-    #         elif args.refine_kind == 1:
-    #             refine_depth_est = outputs["refined_depth"]
-    #             if args.loss == 'mvsnet_loss_divby_interval':
-    #                 refine_loss = model_loss(refine_depth_est, half_depth_gt, mask, depth_interval)
-    #             else:
-    #                 refine_loss = model_loss(refine_depth_est, half_depth_gt, mask)
-    #             init_loss = loss
-    #             loss = init_loss + args.rw * refine_loss
-    #     else:
-    #         if args.refine_kind == 0:
-    #             refine_depth_est = outputs["refined_depth"]
-    #             if args.loss == 'mvsnet_loss_divby_interval':
-    #                 refine_loss = model_loss(refine_depth_est, depth_gt, mask, depth_interval)
-    #             else:
-    #                 refine_loss = model_loss(refine_depth_est, depth_gt, mask)
-    #             init_loss = loss
-    #             loss = args.rw * init_loss + refine_loss
-    #         elif args.refine_kind == 1:
-    #             refine_depth_est = outputs["refined_depth"]
-    #             if args.loss == 'mvsnet_loss_divby_interval':
-    #                 refine_loss = model_loss(refine_depth_est, depth_gt, mask, depth_interval)
-    #             else:
-    #                 refine_loss = model_loss(refine_depth_est, depth_gt, mask)
-    #             init_loss = loss
-    #             loss = init_loss + args.rw * refine_loss
 
     if is_distributed and args.using_apex:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -548,34 +409,9 @@ def train_sample(sample, detailed_summary=False, refine=False):
     #torch.nn.utils.clip_grad_norm(model.parameters(), 2.0)
     optimizer.step()
     scalar_outputs = {"loss": loss}
-    # image_outputs = {"depth_est": depth_est * mask, 
-    #                 "depth_gt": depth_gt * mask, 
-    #                  "original_depth_gt" : sample["depth"],
-    #                  "ref_img": sample["imgs"][:, 0],
-    #                  "mask": sample["mask"],
-    #                  "errormap": (depth_est - depth_gt).abs() * mask}
-    image_outputs = {}
-    # if detailed_summary:
-    #     image_outputs["errormap"] = (depth_est - depth_gt).abs() * mask
-    #     scalar_outputs["abs_depth_error"] = AbsDepthError_metrics(depth_est, depth_gt, mask > 0.5)
-    #     scalar_outputs["thres2mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 2)
-    #     scalar_outputs["thres4mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 4)
-    #     scalar_outputs["thres8mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 8)
-    #     scalar_outputs["thres1DITF"] = Thres_metrics_tfversion(depth_est, depth_gt, mask > 0.5, depth_interval)
-    #     scalar_outputs["thres3DITF"] = Thres_metrics_tfversion(depth_est, depth_gt, mask > 0.5, 3 * depth_interval)
-
-    # if refine:
-    #      scalar_outputs["init_loss"] = init_loss
-    #      scalar_outputs["refine_loss"] = refine_loss
-    #      image_outputs["refine_depth_est"] = refine_depth_est * mask
-    #      if detailed_summary:
-    #         image_outputs["refine_errormap"] = (refine_depth_est - depth_gt).abs() * mask
-    #         scalar_outputs["refine_abs_depth_error"] = AbsDepthError_metrics(refine_depth_est, depth_gt, mask > 0.5)
-    #         scalar_outputs["refine_thres2mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 2)
-    #         scalar_outputs["refine_thres4mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 4)
-    #         scalar_outputs["refine_thres8mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 8)
-    #         scalar_outputs["refine_thres1DITF"] = Thres_metrics_tfversion(refine_depth_est, depth_gt, mask > 0.5, depth_interval)
-    #         scalar_outputs["refine_thres3DITF"] = Thres_metrics_tfversion(refine_depth_est, depth_gt, mask > 0.5, 3 * depth_interval)
+    image_outputs = {"depth_est": depth_est * mask,  
+                     "ref_img": sample["imgs"][:, 0],
+                    }
 
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
@@ -587,275 +423,37 @@ def train_sample(sample, detailed_summary=False, refine=False):
 def test_sample(sample, detailed_summary=True, refine=False):
     model.eval()
     sample_cuda = tocuda(sample)
-    depth_gt = sample_cuda["depth"]
+    
     mask = sample_cuda["mask"]
     depth_interval = sample_cuda["depth_interval"]
     depth_value = sample_cuda["depth_values"]
     outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
     #print(depth_value.type(), depth_interval.type(), depth_gt.type())
-    if args.loss == 'mvsnet_cls_loss' or args.loss == 'mvsnet_cls_loss_ori':
+    
+    if args.loss == 'mvsnet_cls_loss':
+        depth_gt = sample_cuda["depth"]
         prob_volume = outputs['prob_volume']
         loss, depth_est, photometric_confidence = model_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=True)
-    elif args.loss == 'mvsnet_loss_divby_interval':
-        depth_est = outputs["depth"]
-        photometric_confidence = outputs['photometric_confidence']
-        loss = model_loss(depth_est, depth_gt, mask, depth_interval)
     elif args.loss == 'unsup_loss':
-        depth_est = outputs['depth']
-        loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, depth_gt, mask)
+        depth_est = outputs["depth"]
+        semantic_mask = outputs["semantic_mask"]
+        photometric_confidence = outputs['photometric_confidence']
+        loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, semantic_mask)
     else:
+        depth_gt = sample_cuda["depth"]
         depth_est = outputs["depth"]
         photometric_confidence = outputs['photometric_confidence']
         loss = model_loss(depth_est, depth_gt, mask)
 
-#    if refine: # using DPSNet refine loss
-#        rw = 0.7
-#        refine_depth_est = outputs["refined_depth"]
-#        if args.loss == 'mvsnet_loss_divby_interval':
-#            refine_loss = model_loss(refine_depth_est, depth_gt, mask, depth_interval)
-#        else:
-#            refine_loss = model_loss(refine_depth_est, depth_gt, mask)
-#        init_loss = loss
-#        loss = rw * init_loss + refine_loss
-
     scalar_outputs = {"loss": loss}
-    image_outputs = {}
-#    image_outputs = {"depth_est": depth_est * mask,
-#                     "photometric_confidence": photometric_confidence * mask, 
-#                     "depth_gt": sample["depth"],
-#                     "ref_img": sample["imgs"][:, 0],
-#                     "mask": sample["mask"]}
-
-#    if detailed_summary:
-#        image_outputs["errormap"] = (depth_est - depth_gt).abs() * mask
-#        
-#    scalar_outputs["abs_depth_error"] = AbsDepthError_metrics(depth_est, depth_gt, mask > 0.5)
-#    scalar_outputs["thres2mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 2)
-#    scalar_outputs["thres4mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 4)
-#    scalar_outputs["thres8mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 8)
-#    scalar_outputs["thres1DITF"] = Thres_metrics_tfversion(depth_est, depth_gt, mask > 0.5, depth_interval)
-#    scalar_outputs["thres3DITF"] = Thres_metrics_tfversion(depth_est, depth_gt, mask > 0.5, 3 * depth_interval)
-
-#    if refine:
-#        scalar_outputs["init_loss"] = init_loss
-#        scalar_outputs["refine_loss"] = refine_loss
-#        image_outputs["refine_depth_est"] = refine_depth_est * mask
-#        if detailed_summary:
-#            image_outputs["refine_errormap"] = (refine_depth_est - depth_gt).abs() * mask
-#        scalar_outputs["refine_abs_depth_error"] = AbsDepthError_metrics(refine_depth_est, depth_gt, mask > 0.5)
-#        scalar_outputs["refine_thres2mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 2)
-#        scalar_outputs["refine_thres4mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 4)
-#        scalar_outputs["refine_thres8mm_error"] = Thres_metrics(refine_depth_est, depth_gt, mask > 0.5, 8)
-#        scalar_outputs["refine_thres1DITF"] = Thres_metrics_tfversion(refine_depth_est, depth_gt, mask > 0.5, depth_interval)
-#        scalar_outputs["refine_thres3DITF"] = Thres_metrics_tfversion(refine_depth_est, depth_gt, mask > 0.5, 3 * depth_interval)
+    image_outputs = {"depth_est": depth_est * mask,
+                     "photometric_confidence": photometric_confidence * mask, 
+                     "ref_img": sample["imgs"][:, 0]}
 
     if is_distributed:
         scalar_outputs = reduce_scalar_outputs(scalar_outputs)
 
     return tensor2float(scalar_outputs["loss"]), tensor2float(scalar_outputs), tensor2numpy(image_outputs)
-
-def train_sample_coarse2fine(sample, detailed_summary=False):
-    model.train()
-    optimizer.zero_grad()
-    
-    sample_cuda = tocuda(sample)
-    depth_gt = sample_cuda["depth"]
-    mask = sample_cuda["mask"]
-    depth_interval = sample_cuda["depth_interval"]
-    depth_min = 450
-    ndepths = 192
-    depth_interval = depth_interval[0]
-
-    outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
-
-    depth_est = outputs["depth"]
-    scale = [1, 0.5, 0.25, 0.125] 
-    
-    if args.loss_w == 1:
-        loss_w = [1, 0.5, 0.25, 0.125] # 1
-    elif args.loss_w == 2:
-        loss_w = [1, 0.25, 0.0625, 0.031] # 2
-    elif args.loss_w == 3:
-        loss_w = [0.8, 0.2, 0.05, 0.025] # # 3 lr = 0.0005 better
-    elif args.loss_w == 4:
-        loss_w = [0.32, 0.08, 0.02, 0.01] # 4 lr=0.001, 5
-    elif args.loss_w == 401:
-        loss_w = [0.48, 0.08, 0.02, 0.01] # 4 lr=0.001, 5
-    elif args.loss_w == 41:
-        loss_w = [0.32, 0.16, 0.04, 0.01] # 4 lr=0.001, 5
-    elif args.loss_w == 42:
-        loss_w = [0.48, 0.16, 0.04, 0.01] # 4 lr=0.001, 5
-    elif args.loss_w == 5:
-        loss_w = [1, 0, 0, 0] # 5 baseline
-    elif args.loss_w == 6:
-        loss_w = [1, 1, 1, 1]
-
-    loss_list = []
-    mask_list = []
-    depth_gt_list = []
-    loss_all = 0
-    for i in range(len(scale)):
-        if args.origin_size == True and args.image_scale == 0.50 and i != 0:
-            s_depth_gt = F.interpolate(depth_gt.unsqueeze(1), scale_factor=scale[i]*0.5, mode='bilinear', align_corners=True).squeeze(1)
-        else:
-            s_depth_gt = F.interpolate(depth_gt.unsqueeze(1), scale_factor=scale[i], mode='bilinear', align_corners=True).squeeze(1)
-        s_mask = (s_depth_gt.type(torch.float32) > (depth_min+depth_interval).type(torch.float32)) & (s_depth_gt.type(torch.float32) < (depth_min+(ndepths-2)*depth_interval).type(torch.float32))
-        s_mask = s_mask.type(torch.float32).cuda()
-        mask_list.append(s_mask)
-        depth_gt_list.append(s_depth_gt)
-        if args.loss == 'mvsnet_loss_divby_interval':
-            loss = model_loss(depth_est[i], s_depth_gt, s_mask, depth_interval)
-        else:
-            loss = model_loss(depth_est[i], s_depth_gt, s_mask)
-        loss_list.append(loss)
-        loss_all += loss_w[i] * loss
-
-    loss_all.backward()
-    optimizer.step()
-
-    
-    scalar_outputs = {"loss": loss_all}
-    image_outputs = {"ref_img": sample["imgs"][:, 0] }
-
-    for i in range(len(scale)):
-        scalar_outputs['loss{}'.format(i)] = loss_list[i]
-        image_outputs['depth_est{}'.format(i)] = depth_est[i] * mask_list[i]
-        image_outputs['depth_gt{}'.format(i)] = depth_gt_list[i] * mask_list[i]
-        image_outputs['mask{}'.format(i)] = mask_list[i]
-        
-        if detailed_summary:
-            image_outputs["errormap{}".format(i)] = (depth_est[i] - depth_gt_list[i]).abs() * mask_list[i]
-            scalar_outputs["abs_depth_error{}".format(i)] = AbsDepthError_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5)
-            scalar_outputs["thres2mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 2)
-            scalar_outputs["thres4mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 4)
-            scalar_outputs["thres8mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 8)
-
-    return tensor2float(loss), tensor2float(scalar_outputs), image_outputs
-
-
-@make_nograd_func
-def test_sample_coarse2fine(sample, detailed_summary=True):
-    model.eval()
-
-    sample_cuda = tocuda(sample)
-    depth_gt = sample_cuda["depth"]
-    mask = sample_cuda["mask"]
-    depth_interval = sample_cuda["depth_interval"]
-
-    #TODO 
-    depth_min = 450
-    ndepths = 192
-    depth_interval = depth_interval[0]
-
-    outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
-    depth_est = outputs["depth"]
-    scale = [1, 0.5, 0.25, 0.125]
-    loss_w = [1, 0.5, 0.25, 0.125]
-    loss_list = []
-    mask_list = []
-    depth_gt_list = []
-    loss_all = 0
-    for i in range(len(scale)):
-        s_depth_gt = F.interpolate(depth_gt.unsqueeze(1), scale_factor=scale[i], mode='bilinear', align_corners=True).squeeze(1)
-        s_mask = (s_depth_gt.type(torch.float32) > (depth_min+depth_interval).type(torch.float32)) & (s_depth_gt.type(torch.float32) < (depth_min+(ndepths-2)*depth_interval).type(torch.float32))
-        s_mask = s_mask.type(torch.float32).cuda()
-        mask_list.append(s_mask)
-        depth_gt_list.append(s_depth_gt)
-        if args.loss == 'mvsnet_loss_divby_interval':
-            loss = model_loss(depth_est[i], s_depth_gt, s_mask, depth_interval)
-        else:
-            loss = model_loss(depth_est[i], s_depth_gt, s_mask)
-        loss_list.append(loss)
-        loss_all += loss_w[i] * loss
-    
-    scalar_outputs = {"loss": loss_all}
-    image_outputs = {"ref_img": sample["imgs"][:, 0], "photometric_confidence": outputs['photometric_confidence'][0]}
-
-    for i in range(len(scale)):
-        scalar_outputs['loss{}'.format(i)] = loss_list[i]
-        image_outputs['depth_est{}'.format(i)] = depth_est[i] * mask_list[i]
-        image_outputs['depth_gt{}'.format(i)] = depth_gt_list[i] * mask_list[i]
-        image_outputs['mask{}'.format(i)] = mask_list[i]
-        
-        if detailed_summary:
-            image_outputs["errormap{}".format(i)] = (depth_est[i] - depth_gt_list[i]).abs() * mask_list[i]
-
-        scalar_outputs["abs_depth_error{}".format(i)] = AbsDepthError_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5)
-        scalar_outputs["thres2mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 2)
-        scalar_outputs["thres4mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 4)
-        scalar_outputs["thres8mm_error{}".format(i)] = Thres_metrics(depth_est[i], depth_gt_list[i], mask_list[i] > 0.5, 8)
-
-    return tensor2float(loss), tensor2float(scalar_outputs), image_outputs
-
-
-@make_nograd_func
-def test_load_sample(sample, detailed_summary=True):
-    model.eval()
-
-    sample_cuda = tocuda(sample)
-    depth_gt = sample_cuda["depth"]
-    mask = sample_cuda["mask"]
-    depth_interval = sample_cuda["depth_interval"]
-
-    depth_name = sample['name']
-    depth_est_list = []
-    for one_depth_name in depth_name:
-        name_split = str.split(one_depth_name, '/')
-        sub_dir = os.path.join(save_dir, name_split[-2])
-        depth_path = os.path.join(sub_dir, 'init_'+name_split[-1])
-        print('load est depth map: ', depth_path)
-        depth_est_list.append(np.array(read_pfm(depth_path)[0], dtype=np.float32))
-    depth_est = torch.from_numpy(np.stack(depth_est_list, axis=0)).cuda()
-    
-    if args.loss == 'mvsnet_loss_divby_interval':
-        loss = model_loss(depth_est, depth_gt, mask, depth_interval)
-    else:
-        loss = model_loss(depth_est, depth_gt, mask)
-
-    scalar_outputs = {"loss": loss}
-    image_outputs = {"depth_est": depth_est * mask, "depth_gt": sample["depth"],
-                     "ref_img": sample["imgs"][:, 0],
-                     "mask": sample["mask"]}
-
-    if detailed_summary:
-        image_outputs["errormap"] = (depth_est - depth_gt).abs() * mask
-        
-    scalar_outputs["abs_depth_error"] = AbsDepthError_metrics(depth_est, depth_gt, mask > 0.5)
-    scalar_outputs["thres2mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 2)
-    scalar_outputs["thres4mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 4)
-    scalar_outputs["thres8mm_error"] = Thres_metrics(depth_est, depth_gt, mask > 0.5, 8)
-
-    return tensor2float(loss), tensor2float(scalar_outputs), image_outputs
-
-def profile():
-    warmup_iter = 5
-    iter_dataloader = iter(TestImgLoader)
-
-    @make_nograd_func
-    def do_iteration():
-        torch.cuda.synchronize()
-        torch.cuda.synchronize()
-        start_time = time.perf_counter()
-        test_sample(next(iter_dataloader), detailed_summary=True)
-        torch.cuda.synchronize()
-        end_time = time.perf_counter()
-        return end_time - start_time
-
-    for i in range(warmup_iter):
-        t = do_iteration()
-        print('WarpUp Iter {}, time = {:.4f}'.format(i, t))
-
-    with torch.autograd.profiler.profile(enabled=True, use_cuda=True) as prof:
-        for i in range(5):
-            t = do_iteration()
-            print('Profile Iter {}, time = {:.4f}'.format(i, t))
-            time.sleep(0.02)
-
-    if prof is not None:
-        # print(prof)
-        trace_fn = 'chrome-trace.bin'
-        prof.export_chrome_trace(trace_fn)
-        print("chrome trace file is written to: ", trace_fn)
 
 
 if __name__ == '__main__':
@@ -863,7 +461,3 @@ if __name__ == '__main__':
         train()
     elif args.mode == "test" or args.mode == "val":
         val()
-    elif args.mode == 'evaluate':
-        evaluate()
-    elif args.mode == "profile":
-        profile()
