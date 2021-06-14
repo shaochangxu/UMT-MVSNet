@@ -49,6 +49,7 @@ class MVSDataset(Dataset):
                 for view_idx in range(num_viewpoint):
                     ref_view = int(f.readline().rstrip())
                     src_views = [int(x) for x in f.readline().rstrip().split()[1::2]]
+                    self.nviews = min(self.nviews, len(src_views))
                     metas.append((scan, ref_view, src_views))
         print("dataset", self.mode, "metas:", len(metas))
         return metas

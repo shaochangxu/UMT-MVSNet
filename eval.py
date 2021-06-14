@@ -53,7 +53,19 @@ if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
 # read intrinsics and extrinsics
-def read_camera_parameters(filename):
+# def read_camera_parameters(filename):
+#     with open(filename) as f:
+#         lines = f.readlines()
+#         lines = [line.rstrip() for line in lines]
+#     # extrinsics: line [1,5), 4x4 matrix
+#     extrinsics = np.fromstring(' '.join(lines[1:5]), dtype=np.float32, sep=' ').reshape((4, 4))
+#     # intrinsics: line [7-10), 3x3 matrix
+#     intrinsics = np.fromstring(' '.join(lines[7:10]), dtype=np.float32, sep=' ').reshape((3, 3))
+#     # TODO: assume the feature is 1/4 of the original image size
+#     intrinsics[:2, :] /= 4
+#     return intrinsics, extrinsics
+
+def read_camera_parameters(filename,scale,index,flag):
     with open(filename) as f:
         lines = f.readlines()
         lines = [line.rstrip() for line in lines]
@@ -62,9 +74,15 @@ def read_camera_parameters(filename):
     # intrinsics: line [7-10), 3x3 matrix
     intrinsics = np.fromstring(' '.join(lines[7:10]), dtype=np.float32, sep=' ').reshape((3, 3))
     # TODO: assume the feature is 1/4 of the original image size
-    intrinsics[:2, :] /= 4
-    return intrinsics, extrinsics
 
+    intrinsics[:2, :] *= scale
+
+    if (flag==0):
+        intrinsics[0,2]-=index
+    else:
+        intrinsics[1,2]-=index
+  
+    return intrinsics, extrinsics
 # read an image
 def read_img(filename):
     img = Image.open(filename)
@@ -95,11 +113,21 @@ def read_pair_file(filename):
             data.append((ref_view, src_views))
     return data
 
+def read_score_file(filename):
+    data=[]
+    with open(filename) as f:
+        num_viewpoint = int(f.readline())
+        # 49 viewpoints
+        for view_idx in range(num_viewpoint):
+            ref_view = int(f.readline().rstrip())
+            scores = [float(x) for x in f.readline().rstrip().split()[2::2]]
+            data.append(scores)
+    return data
 # run MVS model to save depth maps and confidence maps
 def save_depth():
     # dataset, dataloader
     MVSDataset = find_dataset_def(args.dataset)
-    test_dataset = MVSDataset(args.testpath, args.testlist, "test", 7, args.numdepth, args.interval_scale, args.inverse_depth, 
+    test_dataset = MVSDataset(args.testpath, args.testlist, "test", 7, args.numdepth, args.interval_scale, False, 
                     adaptive_scaling=True, max_h=args.max_h, max_w=args.max_w, sample_scale=1, base_image_size=8)
     
     TestImgLoader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=0, drop_last=False)
@@ -107,7 +135,7 @@ def save_depth():
     # model
     print('use Dense Multi-scale MVSNet')
         
-    model = DrMVSNet(image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w)
+    model = DrMVSNet(image_scale=args.image_scale, max_h=args.max_h, max_w=args.max_w, predict = True, return_depth = True)
 
     # load checkpoint file specified by args.loadckpt
     print("loading model {}".format(args.loadckpt))
@@ -138,17 +166,13 @@ def save_depth():
                 print('avg time:', total_time / 50) 
                 total_time = 0
                 
-            #if 'High' in args.fea_net  and 'Coarse2Fine' in args.cost_net:
-            tmp_outputs = {}
-            for key, value in outputs.items():
-                tmp_outputs[key] = value[0]
-            outputs = tmp_outputs
 
             outputs = tensor2numpy(outputs)
+            print(outputs["depth"].shape)
             del sample_cuda
             print('Iter {}/{}'.format(batch_idx, len(TestImgLoader)))
             filenames = sample["filename"]
-
+            print(filenames)
             # save depth maps and confidence maps
             for filename, depth_est, photometric_confidence in zip(filenames, outputs["depth"],
                                                                    outputs["photometric_confidence"]):
@@ -157,7 +181,6 @@ def save_depth():
                 os.makedirs(depth_filename.rsplit('/', 1)[0], exist_ok=True)
                 os.makedirs(confidence_filename.rsplit('/', 1)[0], exist_ok=True)
                 # save depth maps
-                print(depth_est.shape)
                 save_pfm(depth_filename, depth_est.squeeze())
                 # save confidence maps
                 save_pfm(confidence_filename, photometric_confidence.squeeze())
@@ -204,27 +227,30 @@ def reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, i
     return depth_reprojected, x_reprojected, y_reprojected, x_src, y_src
 
 
-def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, intrinsics_src, extrinsics_src):
+def check_geometric_consistency(depth_ref, intrinsics_ref, extrinsics_ref, depth_src, intrinsics_src, extrinsics_src
+                                ):
     width, height = depth_ref.shape[1], depth_ref.shape[0]
     x_ref, y_ref = np.meshgrid(np.arange(0, width), np.arange(0, height))
-    depth_reprojected, x2d_reprojected, y2d_reprojected, x2d_src, y2d_src = reproject_with_depth(depth_ref, intrinsics_ref, extrinsics_ref,
-                                                     depth_src, intrinsics_src, extrinsics_src)
+    depth_reprojected, x2d_reprojected, y2d_reprojected, x2d_src, y2d_src = reproject_with_depth(depth_ref,
+                                                                                                 intrinsics_ref,
+                                                                                                 extrinsics_ref,
+                                                                                                 depth_src,
+                                                                                                 intrinsics_src,
+                                                                                                 extrinsics_src)
     # check |p_reproj-p_1| < 1
     dist = np.sqrt((x2d_reprojected - x_ref) ** 2 + (y2d_reprojected - y_ref) ** 2)
 
     # check |d_reproj-d_1| / d_1 < 0.01
     depth_diff = np.abs(depth_reprojected - depth_ref)
     relative_depth_diff = depth_diff / depth_ref
-
     masks=[]
     for i in range(2,11):
         mask = np.logical_and(dist < i/4, relative_depth_diff < i/1300)
         masks.append(mask)
-
-    # mask = np.logical_and(dist < 1, relative_depth_diff < 0.01)
     depth_reprojected[~mask] = 0
 
     return masks, mask, depth_reprojected, x2d_src, y2d_src
+
 
 def filter_depth(scan_folder, out_folder, plyfilename, photo_threshold):
     # the pair file
@@ -234,25 +260,35 @@ def filter_depth(scan_folder, out_folder, plyfilename, photo_threshold):
     vertex_colors = []
 
     pair_data = read_pair_file(pair_file)
-    nviews = len(pair_data)
+    score_data = read_score_file(pair_file)
 
-    ct2 = -1
+    nviews = len(pair_data)
+    # TODO: hardcode size
+    # used_mask = [np.zeros([296, 400], dtype=np.bool) for _ in range(nviews)]
 
     # for each reference view and the corresponding source views
+    ct2 = -1
+
     for ref_view, src_views in pair_data:
+
         ct2 += 1
 
-        # load the camera parameters
-        ref_intrinsics, ref_extrinsics = read_camera_parameters(
-            os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(ref_view)))
 
         # load the reference image
         ref_img = read_img(os.path.join(scan_folder, 'images/{:0>8}.jpg'.format(ref_view)))
         # load the estimated depth of the reference view
         ref_depth_est = read_pfm(os.path.join(out_folder, 'depth_est_0/{:0>8}.pfm'.format(ref_view)))[0]
+
+        import cv2
+
+        # ref_img=cv2.pyrUp(ref_img)
+
+        #ref_depth_est=cv2.pyrUp(ref_depth_est)
+        # ref_depth_est=cv2.pyrUp(ref_depth_est)
+
         # load the photometric mask of the reference view
         confidence = read_pfm(os.path.join(out_folder, 'confidence_0/{:0>8}.pfm'.format(ref_view)))[0]
-        
+
         scale=float(confidence.shape[0])/ref_img.shape[0]
         index=int((int(ref_img.shape[1]*scale)-confidence.shape[1])/2)
         flag=0
@@ -261,71 +297,100 @@ def filter_depth(scan_folder, out_folder, plyfilename, photo_threshold):
             index=int((int(ref_img.shape[0]*scale)-confidence.shape[0])/2)
             flag=1
 
+        #confidence=cv2.pyrUp(confidence)
         ref_img=cv2.resize(ref_img,(int(ref_img.shape[1]*scale),int(ref_img.shape[0]*scale)))
         if (flag==0):
             ref_img=ref_img[:,index:ref_img.shape[1]-index,:]
         else:
             ref_img=ref_img[index:ref_img.shape[0]-index,:,:]
 
+        # load the camera parameters
+        ref_intrinsics, ref_extrinsics = read_camera_parameters(
+            os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(ref_view)),scale,index,flag)
+
         photo_mask = confidence > photo_threshold
 
-        all_srcview_depth_ests = []
-        # all_srcview_x = []
-        # all_srcview_y = []
-        # all_srcview_geomask = []
+        # photo_mask = confidence>=0
 
+        # photo_mask = confidence > confidence.mean()
+
+        # ref_depth_est=ref_depth_est * photo_mask
+
+
+        all_srcview_depth_ests = []
+        all_srcview_x = []
+        all_srcview_y = []
+        all_srcview_geomask = []
         # compute the geometric mask
         geo_mask_sum = 0
-        geo_mask_sums = []
-        n = 1
+        geo_mask_sums=[]
+        n=1
         for src_view in src_views:
           n+=1
         ct = 0
         for src_view in src_views:
-            # camera parameters of the source view
-            src_intrinsics, src_extrinsics = read_camera_parameters(
-                os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(src_view)))
-            # the estimated depth of the source view
-            src_depth_est = read_pfm(os.path.join(out_folder, 'depth_est_0/{:0>8}.pfm'.format(src_view)))[0]
+                ct = ct + 1
+                # camera parameters of the source view
+                src_intrinsics, src_extrinsics = read_camera_parameters(
+                    os.path.join(scan_folder, 'cams/{:0>8}_cam.txt'.format(src_view)),scale,index,flag)
+                # the estimated depth of the source view
+                src_depth_est = read_pfm(os.path.join(out_folder, 'depth_est_0/{:0>8}.pfm'.format(src_view)))[0]
 
-            masks, geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics, ref_extrinsics,
-                                                                      src_depth_est,
-                                                                      src_intrinsics, src_extrinsics)
-            if (ct==1):
-                for i in range(2,n):
-                    geo_mask_sums.append(masks[i-2].astype(np.int32))
-            else :
-                for i in range(2,n):
-                    geo_mask_sums[i-2]+=masks[i-2].astype(np.int32)
+                #src_depth_est=cv2.pyrUp(src_depth_est)
+                # src_depth_est=cv2.pyrUp(src_depth_est)
 
-            geo_mask_sum += geo_mask.astype(np.int32)
-            all_srcview_depth_ests.append(depth_reprojected)
-            # all_srcview_x.append(x2d_src)
-            # all_srcview_y.append(y2d_src)
-            # all_srcview_geomask.append(geo_mask)
+                src_confidence = read_pfm(os.path.join(out_folder, 'confidence_0/{:0>8}.pfm'.format(src_view)))[0]
+
+                # src_mask=src_confidence>0.1
+                # src_mask=src_confidence>src_confidence.mean()
+
+                # src_depth_est=src_depth_est*src_mask
+
+
+
+                masks, geo_mask, depth_reprojected, x2d_src, y2d_src = check_geometric_consistency(ref_depth_est, ref_intrinsics,
+                                                                                            ref_extrinsics,
+                                                                                            src_depth_est,
+                                                                                            src_intrinsics, src_extrinsics)
+
+                if (ct==1):
+                    for i in range(2,n):
+                        geo_mask_sums.append(masks[i-2].astype(np.int32))
+                else :
+                    for i in range(2,n):
+                        geo_mask_sums[i-2]+=masks[i-2].astype(np.int32)
+
+                geo_mask_sum+=geo_mask.astype(np.int32)
+
+                all_srcview_depth_ests.append(depth_reprojected)
+
+                # all_srcview_x.append(x2d_src)
+                # all_srcview_y.append(y2d_src)
+                # all_srcview_geomask.append(geo_mask)
+
+        geo_mask=geo_mask_sum>=n
 
         for i in range (2,n):
             geo_mask=np.logical_or(geo_mask,geo_mask_sums[i-2]>=i)
             print(geo_mask.mean())
 
         depth_est_averaged = (sum(all_srcview_depth_ests) + ref_depth_est) / (geo_mask_sum + 1)
-        # at least 3 source views matched
-        geo_mask = geo_mask_sum >= n
-        final_mask = np.logical_and(photo_mask, geo_mask)
+
 
         if (not isinstance(geo_mask, bool)):
+
             final_mask = np.logical_and(photo_mask, geo_mask)
-            
+
             os.makedirs(os.path.join(out_folder, "mask"), exist_ok=True)
 
             save_mask(os.path.join(out_folder, "mask/{:0>8}_photo.png".format(ref_view)), photo_mask)
             save_mask(os.path.join(out_folder, "mask/{:0>8}_geo.png".format(ref_view)), geo_mask)
             save_mask(os.path.join(out_folder, "mask/{:0>8}_final.png".format(ref_view)), final_mask)
 
-            print("processing {}, ref-view{:0>2}, photo/geo/final-mask:{}/{}/{}".format(scan_folder, ref_view, photo_mask.mean(),
+            print("processing {}, ref-view{:0>2}, photo/geo/final-mask:{}/{}/{}".format(scan_folder, ref_view,
+                                                                                        photo_mask.mean(),
                                                                                         geo_mask.mean(),
                                                                                         final_mask.mean()))
-
             height, width = depth_est_averaged.shape[:2]
             x, y = np.meshgrid(np.arange(0, width), np.arange(0, height))
             # valid_points = np.logical_and(final_mask, ~used_mask[ref_view])
@@ -336,9 +401,17 @@ def filter_depth(scan_folder, out_folder, plyfilename, photo_threshold):
             xyz_ref = np.matmul(np.linalg.inv(ref_intrinsics),
                                 np.vstack((x, y, np.ones_like(x))) * depth)
             xyz_world = np.matmul(np.linalg.inv(ref_extrinsics),
-                                np.vstack((xyz_ref, np.ones_like(x))))[:3]
+                                  np.vstack((xyz_ref, np.ones_like(x))))[:3]
             vertexs.append(xyz_world.transpose((1, 0)))
             vertex_colors.append((color * 255).astype(np.uint8))
+
+            # # set used_mask[ref_view]
+            # used_mask[ref_view][...] = True
+            # for idx, src_view in enumerate(src_views):
+            #     src_mask = np.logical_and(final_mask, all_srcview_geomask[idx])
+            #     src_y = all_srcview_y[idx].astype(np.int)
+            #     src_x = all_srcview_x[idx].astype(np.int)
+            #     used_mask[src_view][src_y[src_mask], src_x[src_mask]] = True
 
     vertexs = np.concatenate(vertexs, axis=0)
     vertex_colors = np.concatenate(vertex_colors, axis=0)
@@ -364,7 +437,7 @@ if __name__ == '__main__':
         scans = f.readlines()
         scans = [line.rstrip() for line in scans]
 
-    photo_threshold = 0.35
+    photo_threshold = 0.015
     for scan in scans:
         scan_folder = os.path.join(args.testpath, scan)
         out_folder = os.path.join(save_dir, scan)

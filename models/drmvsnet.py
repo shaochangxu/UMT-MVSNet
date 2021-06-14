@@ -13,7 +13,7 @@ from .rnnmodule import *
 
 class DrMVSNet(nn.Module):
     def __init__(self, refine=True, dp_ratio=0.0, image_scale=0.25, max_h=960, max_w=480,
-                 reg_loss=False, return_depth=False, gn=True, pyramid=-1):
+                 reg_loss=False, return_depth=False, gn=True, pyramid=-1, predict=False):
         super(DrMVSNet, self).__init__() # parent init
         
         self.gn = gn
@@ -28,21 +28,21 @@ class DrMVSNet(nn.Module):
             input_size = (144, 200)
         elif pyramid == 2:
             input_size = (72, 96)   
-        
-        num_layers = 7
-        input_dim = [32, 16, 16, 16, 32, 32, 32]
-        hidden_dim = [ 16, 16, 16, 16, 16, 16, 8]
+        #print('input UNetConvLSTM H,W: {}, {}'.format(input_size[0], input_size[1]))
+        input_dim = [32, 16, 16, 32, 32]
+        hidden_dim = [ 16, 16, 16, 16, 8]
+        num_layers = 5
         kernel_size = [(3, 3) for i in range(num_layers)]
         
-        self.cost_regularization = UNetConvLSTMV4(input_size, input_dim, hidden_dim, kernel_size, num_layers,
-                batch_first=False, bias=True, return_all_layers=False, gn=self.gn)
+        self.cost_regularization = UNetConvLSTM(input_size, input_dim, hidden_dim, kernel_size, num_layers,
+             batch_first=False, bias=True, return_all_layers=False, gn=self.gn)
     
         # Cost Aggregation
         self.gatenet = gatenet(self.gn, 32)
 
         self.reg_loss = reg_loss
         self.return_depth = return_depth
-
+        self.predict = predict
         self.mask_net = SemanticNet()
 
     def forward(self, imgs, proj_matrices, depth_values):
@@ -54,7 +54,8 @@ class DrMVSNet(nn.Module):
         num_views = len(imgs)
 
         # process DrMVSNet
-        semantic_mask = self.mask_net(imgs[0])
+        if not self.predict:
+            semantic_mask = self.mask_net(imgs[0])
 
         # step 1. feature extraction
         # in: images; out: 32-channel feature maps
@@ -67,43 +68,100 @@ class DrMVSNet(nn.Module):
         # initialization for drmvsnet # recurrent module
         cost_reg_list = []
         hidden_state = None
-        
-        for d in range(num_depth):
-            # step 2. differentiable homograph, build cost volume
+        if not self.return_depth: # Training Phase;
+            for d in range(num_depth):
+                # step 2. differentiable homograph, build cost volume
 
-            ref_volume = ref_feature
-            warped_volumes = None
-            for src_fea, src_proj in zip(src_features, src_projs):
-                    warped_volume = homo_warping_depthwise(src_fea, src_proj, ref_proj, depth_values[:, d])
-                    warped_volume = (warped_volume - ref_volume).pow_(2)
-                    reweight = self.gatenet(warped_volume) 
-                    if warped_volumes is None:
-                        warped_volumes = (reweight + 1) * warped_volume
-                    else:
-                        warped_volumes = warped_volumes + (reweight + 1) * warped_volume
-            volume_variance = warped_volumes / len(src_features)
+                ref_volume = ref_feature
+                warped_volumes = None
+                for src_fea, src_proj in zip(src_features, src_projs):
+                        warped_volume = homo_warping_depthwise(src_fea, src_proj, ref_proj, depth_values[:, d])
+                        warped_volume = (warped_volume - ref_volume).pow_(2)
+                        reweight = self.gatenet(warped_volume) 
+                        if warped_volumes is None:
+                            warped_volumes = (reweight + 1) * warped_volume
+                        else:
+                            warped_volumes = warped_volumes + (reweight + 1) * warped_volume
+                volume_variance = warped_volumes / len(src_features)
+                
+                # step 3. cost volume regularization
+                cost_reg, hidden_state= self.cost_regularization(-1 * volume_variance, hidden_state, d)
+                cost_reg_list.append(cost_reg)
             
-            # step 3. cost volume regularization
-            cost_reg, hidden_state= self.cost_regularization(-1 * volume_variance, hidden_state, d)
-            cost_reg_list.append(cost_reg)
-        
-        
-        prob_volume = torch.stack(cost_reg_list, dim=1).squeeze(2)
-        prob_volume = F.softmax(prob_volume, dim=1) # get prob volume use for recurrent to decrease memory consumption
+            
+            prob_volume = torch.stack(cost_reg_list, dim=1).squeeze(2)
+            prob_volume = F.softmax(prob_volume, dim=1) # get prob volume use for recurrent to decrease memory consumption
 
-        if not self.reg_loss:
-            return {'prob_volume': prob_volume, "semantic_mask":semantic_mask}
+            if not self.reg_loss:
+                depth = depth_regression(prob_volume, depth_values=depth_values)
+                if self.predict:
+                    with torch.no_grad():
+                        # photometric confidence
+                        prob_volume_sum4 = 4 * F.avg_pool3d(F.pad(prob_volume.unsqueeze(1), pad=(0, 0, 0, 0, 1, 2)), (4, 1, 1), stride=1, padding=0).squeeze(1)
+                        depth_index = depth_regression(prob_volume, depth_values=torch.arange(num_depth, device=prob_volume.device, dtype=torch.float)).long()
+                        photometric_confidence = torch.gather(prob_volume_sum4, 1, depth_index.unsqueeze(1)).squeeze(1)
+                    semantic_mask = photometric_confidence
+                # print(self.reg_loss)
+                return {"depth": depth, 'prob_volume': prob_volume, "semantic_mask":semantic_mask, "photometric_confidence": photometric_confidence}
+            else:
+                depth = depth_regression(prob_volume, depth_values=depth_values)
+                # print(self.reg_loss)
+                with torch.no_grad():
+                    # photometric confidence
+                    prob_volume_sum4 = 4 * F.avg_pool3d(F.pad(prob_volume.unsqueeze(1), pad=(0, 0, 0, 0, 1, 2)), (4, 1, 1), stride=1, padding=0).squeeze(1)
+                    depth_index = depth_regression(prob_volume, depth_values=torch.arange(num_depth, device=prob_volume.device, dtype=torch.float)).long()
+                    photometric_confidence = torch.gather(prob_volume_sum4, 1, depth_index.unsqueeze(1)).squeeze(1)
+                
+                if self.predict:
+                    semantic_mask = photometric_confidence
+                #return {'prob_volume': prob_volume, "depth": depth, "photometric_confidence": photometric_confidence, "semantic_mask":semantic_mask}
+                return {"depth": depth, "photometric_confidence": photometric_confidence, "semantic_mask":semantic_mask}
         else:
-            depth = depth_regression(prob_volume, depth_values=depth_values)
+            shape = ref_feature.shape
+            depth_image = torch.zeros(shape[0], shape[2], shape[3]).cuda() #B X H X w
+            max_prob_image = torch.zeros(shape[0], shape[2], shape[3]).cuda()
+            exp_sum = torch.zeros(shape[0], shape[2], shape[3]).cuda()
 
-            with torch.no_grad():
-                # photometric confidence
-                prob_volume_sum4 = 4 * F.avg_pool3d(F.pad(prob_volume.unsqueeze(1), pad=(0, 0, 0, 0, 1, 2)), (4, 1, 1), stride=1, padding=0).squeeze(1)
-                depth_index = depth_regression(prob_volume, depth_values=torch.arange(num_depth, device=prob_volume.device, dtype=torch.float)).long()
-                photometric_confidence = torch.gather(prob_volume_sum4, 1, depth_index.unsqueeze(1)).squeeze(1)
+            for d in range(num_depth):
+                # step 2. differentiable homograph, build cost volume
+               
+
+                ref_volume = ref_feature
+                warped_volumes = None
+                for src_fea, src_proj in zip(src_features, src_projs):
+                        warped_volume = homo_warping_depthwise(src_fea, src_proj, ref_proj, depth_values[:, d])
+                        warped_volume = (warped_volume - ref_volume).pow_(2)
+                        reweight = self.gatenet(warped_volume) # saliency 
+                        if warped_volumes is None:
+                            warped_volumes = (reweight + 1) * warped_volume
+                        else:
+                            warped_volumes = warped_volumes + (reweight + 1) * warped_volume
+                volume_variance = warped_volumes / len(src_features)
+                
+                # step 3. cost volume regularization
+                cost_reg, hidden_state= self.cost_regularization(-1 * volume_variance, hidden_state, d)
+
+                # Start to caculate depth index
+                #print('cost_reg: ', cost_reg.shape())
+                prob = torch.exp(cost_reg.squeeze(1))
+
+                d_idx = d
+                depth = depth_values[:, d] # B 
+                temp_depth_image = depth.view(shape[0], 1, 1).repeat(1, shape[2], shape[3])
+                update_flag_image = (max_prob_image < prob).type(torch.float)
+                #print('update num: ', torch.sum(update_flag_image))
+                new_max_prob_image = torch.mul(update_flag_image, prob) + torch.mul(1-update_flag_image, max_prob_image)
+                new_depth_image = torch.mul(update_flag_image, temp_depth_image) + torch.mul(1-update_flag_image, depth_image)
+                max_prob_image = new_max_prob_image
+                depth_image = new_depth_image
+                exp_sum = exp_sum + prob
             
-            return {'prob_volume': prob_volume, "depth": depth, "photometric_confidence": photometric_confidence, "semantic_mask":semantic_mask}
-        
+            forward_exp_sum = exp_sum
+            forward_depth_map = depth_image
+            
+            return {"depth": forward_depth_map, "photometric_confidence": max_prob_image / forward_exp_sum}
+
+
 def get_propability_map(prob_volume, depth, depth_values):
     # depth_values: B,D
     shape = prob_volume.shape
@@ -127,9 +185,13 @@ def get_propability_map(prob_volume, depth, depth_values):
     prob_map = torch.clamp(prob_map_left0 + prob_map_left1 + prob_map_right0 + prob_map_right1, 0, 0.9999)
     return prob_map
 
-def mvsnet_loss(depth_est, depth_gt, mask):
+def mvsnet_loss(imgs, depth_est, depth_gt, mask, semantic_mask):
     mask = mask > 0.5
-    return F.smooth_l1_loss(depth_est[mask], depth_gt[mask], size_average=True)
+    mask1 = semantic_mask[:, 0, :, :]
+    step_mask = semantic_mask[:, 1, :, :]
+    ref_features = torch.unbind(imgs, 1)[0]
+    simplify_loss = simplifyDis(ref_features, mask1, step_mask)
+    return F.smooth_l1_loss(depth_est[mask], depth_gt[mask], size_average=True) + simplify_loss
 
 def mvsnet_cls_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=False): 
     # depth_value: B * NUM

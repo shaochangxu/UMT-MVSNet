@@ -53,6 +53,8 @@ parser.add_argument('--max_h', type=int, default=512, help='Maximum image height
 parser.add_argument('--max_w', type=int, default=640, help='Maximum image width when training.')
 ##### end dsrmvsnet
 
+parser.add_argument('--local_rank', type=int, default=0, help='training view num setting')
+
 parser.add_argument('--view_num', type=int, default=3, help='training view num setting')
 
 parser.add_argument('--image_scale', type=float, default=0.25, help='pred depth map scale') # 0.5
@@ -110,7 +112,7 @@ is_distributed = args.ngpu > 1
 
 if is_distributed:
     print('start distributed ************\n')
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(args.local_rank)
     torch.distributed.init_process_group(
         backend="nccl", init_method="env://"
     )
@@ -179,7 +181,7 @@ if args.using_apex:
 if is_distributed:
     print("Dist Train, Let's use", torch.cuda.device_count(), "GPUs!")
     model = torch.nn.parallel.DistributedDataParallel(
-        model, device_ids=[0], output_device=0,
+        model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True
     )
 else:
     if torch.cuda.is_available():
@@ -248,7 +250,7 @@ def train():
         for batch_idx, sample in enumerate(TrainImgLoader):
             start_time = time.time()
             global_step = len(TrainImgLoader) * epoch_idx + batch_idx
-            do_summary = global_step % args.summary_freq == 0
+            do_summary = global_step % 20 == 0
 
             loss, scalar_outputs, image_outputs = train_sample(sample, detailed_summary=do_summary)
 
@@ -273,7 +275,7 @@ def train():
                     'epoch': epoch_idx,
                     'model': model.module.state_dict(),
                     'optimizer': optimizer.state_dict()},
-                    "{}/model_{:0>6}.ckpt".format(args.logdir, epoch_idx),
+                    "{}/model_{:0>6}.ckpt".format(args.save_dir, epoch_idx),
                     _use_new_zipfile_serialization=False)
         gc.collect()
 
@@ -313,7 +315,7 @@ def train():
             global_step = len(ResTestImgLoader) * epoch_idx + batch_idx
             do_summary = global_step % 20 == 0
             
-            loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=do_summary)
+            loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=do_summary)
             
             if loss == 0:
                 print('Loss is zero, no valid point')
@@ -357,7 +359,7 @@ def val():
     for batch_idx, sample in enumerate(ImgLoader):
         start_time = time.time()
         
-        loss, scalar_outputs, image_outputs = test_sample_coarse2fine(sample, detailed_summary=True)
+        loss, scalar_outputs, image_outputs = test_sample(sample, detailed_summary=True)
        
         if loss == 0:
             print('Loss is zero, no valid point')
@@ -386,18 +388,15 @@ def train_sample(sample, detailed_summary=False, refine=False):
     depth_value = sample_cuda["depth_values"]
     outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
 
-    if args.loss == 'mvsnet_cls_loss':
-        depth_gt = sample_cuda["depth"]
-        prob_volume = outputs['prob_volume']
-        loss, depth_est = model_loss(prob_volume, depth_gt, mask, depth_value) # 11 test 46 idx : depth range fault
-    elif args.loss == 'unsup_loss':
+    if args.loss == 'unsup_loss':
         depth_est = outputs["depth"]
         semantic_mask = outputs["semantic_mask"]
         loss = model_loss(sample_cuda["imgs"], sample_cuda["proj_matrices"], depth_est, semantic_mask)
     else:
         depth_gt = sample_cuda["depth"]
         depth_est = outputs["depth"]
-        loss = model_loss(depth_est, depth_gt, mask)
+        semantic_mask = outputs["semantic_mask"]
+        loss = model_loss(sample_cuda["imgs"], depth_est, depth_gt, mask, semantic_mask)
 
     if is_distributed and args.using_apex:
         with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -430,11 +429,7 @@ def test_sample(sample, detailed_summary=True, refine=False):
     outputs = model(sample_cuda["imgs"], sample_cuda["proj_matrices"], sample_cuda["depth_values"])
     #print(depth_value.type(), depth_interval.type(), depth_gt.type())
     
-    if args.loss == 'mvsnet_cls_loss':
-        depth_gt = sample_cuda["depth"]
-        prob_volume = outputs['prob_volume']
-        loss, depth_est, photometric_confidence = model_loss(prob_volume, depth_gt, mask, depth_value, return_prob_map=True)
-    elif args.loss == 'unsup_loss':
+    if args.loss == 'unsup_loss':
         depth_est = outputs["depth"]
         semantic_mask = outputs["semantic_mask"]
         photometric_confidence = outputs['photometric_confidence']
@@ -443,7 +438,8 @@ def test_sample(sample, detailed_summary=True, refine=False):
         depth_gt = sample_cuda["depth"]
         depth_est = outputs["depth"]
         photometric_confidence = outputs['photometric_confidence']
-        loss = model_loss(depth_est, depth_gt, mask)
+        semantic_mask = outputs["semantic_mask"]
+        loss = model_loss(sample_cuda["imgs"], depth_est, depth_gt, mask, semantic_mask)
 
     scalar_outputs = {"loss": loss}
     image_outputs = {"depth_est": depth_est * mask,

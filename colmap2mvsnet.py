@@ -14,7 +14,7 @@ import os
 import argparse
 import shutil
 import cv2
-
+import time
 
 #============================ read_model.py ============================#
 CameraModel = collections.namedtuple(
@@ -282,6 +282,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert colmap camera')
 
     parser.add_argument('--dense_folder', type=str, help='Project dir.')
+    parser.add_argument('--whitelist', type=str, help='Project dir.')
 
     parser.add_argument('--max_d', type=int, default=0)
     parser.add_argument('--interval_scale', type=float, default=1)
@@ -298,7 +299,7 @@ if __name__ == '__main__':
     image_dir = os.path.join(args.dense_folder, 'images')
     model_dir = os.path.join(args.dense_folder, 'sparse')
     cam_dir = os.path.join(args.dense_folder, 'cams')
-    renamed_dir = os.path.join(args.dense_folder, 'images')
+    renamed_dir = os.path.join(args.dense_folder, 'images_tmp')
 
     cameras, images, points3d = read_model(model_dir, '.txt')
     num_images = len(list(images.items()))
@@ -316,6 +317,22 @@ if __name__ == '__main__':
         'FOV': ['fx', 'fy', 'cx', 'cy', 'omega'],
         'THIN_PRISM_FISHEYE': ['fx', 'fy', 'cx', 'cy', 'k1', 'k2', 'p1', 'p2', 'k3', 'k4', 'sx1', 'sy1']
     }
+
+    whitelist = []
+
+    with open(args.whitelist, "r") as fid:
+        while True:
+            line = fid.readline()
+            if not line:
+                break
+            line = line.strip()
+            #print(line)
+            for image_id, image in images.items():
+                if(line == image.name):
+                    whitelist.append(image_id)
+
+    # for _ in whitelist:
+    #     print(images[_].name)
 
     # intrinsic
     intrinsic = {}
@@ -335,6 +352,7 @@ if __name__ == '__main__':
     # extrinsic
     extrinsic = {}
     for image_id, image in images.items():
+        #print(image.name)
         e = np.zeros((4, 4))
         e[:3, :3] = qvec2rotmat(image.qvec)
         e[:3, 3] = image.tvec
@@ -346,7 +364,7 @@ if __name__ == '__main__':
     depth_ranges = {}
     for i in range(num_images - 1):
         zs = []
-        print(i)
+        #print(i)
         for p3d_id in images[i+1].point3D_ids:
             if p3d_id == -1:
                 continue
@@ -403,6 +421,8 @@ if __name__ == '__main__':
         score[j, i] = s
     view_sel = []
     for i in range(len(images) - 1):
+        if not i in whitelist:
+            continue
         sorted_score = np.argsort(score[i])[::-1]
         view_sel.append([(k, score[i, k]) for k in sorted_score[:10]])
     print('view_sel[0]\n', view_sel[0], end='\n\n')
@@ -412,8 +432,11 @@ if __name__ == '__main__':
         os.makedirs(cam_dir)
     except os.error:
         print(cam_dir + ' already exist.')
+    index = 0
     for i in range(num_images - 1):
-        with open(os.path.join(cam_dir, '%08d_cam.txt' % i), 'w') as f:
+        if not i + 1 in whitelist:
+            continue;
+        with open(os.path.join(cam_dir, '%08d_cam.txt' % index), 'w') as f:
             f.write('extrinsic\n')
             for j in range(4):
                 for k in range(4):
@@ -425,17 +448,30 @@ if __name__ == '__main__':
                     f.write(str(intrinsic[images[i+1].camera_id][j, k]) + ' ')
                 f.write('\n')
             f.write('\n%f %f %f %f\n' % (depth_ranges[i+1][0], depth_ranges[i+1][1], depth_ranges[i+1][2], depth_ranges[i+1][3]))
+        index = index + 1
+
     with open(os.path.join(args.dense_folder, 'pair.txt'), 'w') as f:
         aa = len(images) - 1
-        f.write('%d\n' % aa)
+        f.write('%d\n' % index)
         for i, sorted_score in enumerate(view_sel):
-            f.write('%d\n%d ' % (i, len(sorted_score)))
+            c = 0
             for image_id, s in sorted_score:
-                f.write('%d %f ' % (image_id, s))
+                if image_id in whitelist:
+                    c = c + 1
+            f.write('%d\n%d ' % (i, c))
+            for image_id, s in sorted_score:
+                if not image_id in whitelist:
+                    continue
+                f.write('%d %f ' % (whitelist.index(image_id), s))
             f.write('\n')
+
+    os.makedirs(renamed_dir)
+    index = 0
     for i in range(num_images - 1):
-        if args.convert_format:
-            img = cv2.imread(os.path.join(image_dir, images[i+1].name))
-            cv2.imwrite(os.path.join(renamed_dir, '%08d.jpg' % i), img)
-        else:
-            shutil.copyfile(os.path.join(image_dir, images[i+1].name), os.path.join(renamed_dir, '%08d.jpg' % i))
+        if not i + 1 in whitelist:
+            continue
+        shutil.copyfile(os.path.join(image_dir, images[i+1].name), os.path.join(renamed_dir, '%08d.jpg' % index))
+        index = index + 1
+    os.remove(image_dir)
+    time.sleep(2)
+    os.rename(renamed_dir, image_dir)
