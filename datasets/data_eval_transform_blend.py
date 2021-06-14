@@ -63,16 +63,11 @@ class MVSDataset(Dataset):
         # intrinsics: line [7-10), 3x3 matrix
         intrinsics = np.fromstring(' '.join(lines[7:10]), dtype=np.float32, sep=' ').reshape((3, 3))
         # TODO Scale
-        #intrinsics[:2, :] /= 4
+        # intrinsics[:2, :] /= 4
         # depth_min & depth_interval: line 11
         depth_min = float(lines[11].split()[0])
         depth_interval = float(lines[11].split()[1]) * self.interval_scale
         return intrinsics, extrinsics, depth_min, depth_interval
-
-    # def read_img(self, filename):
-    #     img = Image.open(filename)
-    #     np_img = np.array(img, dtype=np.float32) / 255.
-    #     return np_img
 
     def read_img(self, filename):
         img = Image.open(filename)
@@ -95,10 +90,7 @@ class MVSDataset(Dataset):
         view_ids = [ref_view] + src_views[:self.nviews - 1]
 
         imgs = []
-        mask = None
-        depth = None
         depth_values = None
-        proj_matrices = []
         cams=[]
         extrinsics_list=[]
 
@@ -123,12 +115,9 @@ class MVSDataset(Dataset):
                     depth_values = np.arange(depth_min, depth_interval * self.ndepths + depth_min, depth_interval,
                                             dtype=np.float32) # the set is [)
                     depth_end = depth_interval * self.ndepths + depth_min
-                # depth_values = np.arange(depth_min, depth_interval * (self.ndepths - 0.5) + depth_min, depth_interval,
-                #                          dtype=np.float32)
 
         imgs = np.stack(imgs).transpose([0, 3, 1, 2]) # B,C,H,W
-        #proj_matrices = np.stack(proj_matrices)
-        
+
         ##TO DO determine a proper scale to resize input
         resize_scale = 1
         if self.adaptive_scaling:
@@ -158,7 +147,6 @@ class MVSDataset(Dataset):
                     
         croped_imgs = croped_imgs.transpose(0,3,1,2)
 
-
         new_proj_matrices = []
         for id in range(self.nviews):
             proj_mat = extrinsics_list[id]#.copy()
@@ -173,13 +161,3 @@ class MVSDataset(Dataset):
                 "proj_matrices": new_proj_matrices,
                 "depth_values": depth_values,
                 "filename": scan + '/{}/' + '{:0>8}'.format(view_ids[0]) + "{}"}
-
-
-if __name__ == "__main__":
-    # some testing code, just IGNORE it
-    #datapath, listfile, mode, nviews, ndepths=192, interval_scale=1.06, adaptive_scaling=True, max_h=1200,max_w=1600,sample_scale=0.25
-    dataset = MVSDataset("/data/yhw/pytorch_dtu/dtu_test/", '../lists/dtu/test.txt', 'test', 5,
-                         192,1.06,adaptive_scaling=True,max_h=800,max_w=1200,sample_scale=1,base_image_size=8)
-    item = dataset[50]
-    for key, value in item.items():
-        print(key, type(value))

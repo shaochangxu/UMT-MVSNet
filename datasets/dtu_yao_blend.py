@@ -8,7 +8,7 @@ from datasets.preprocess import *
 # the DTU dataset preprocessed by Yao Yao (only for training)
 class MVSDataset(Dataset):
     def __init__(self, datapath, listfile, mode, nviews, ndepths=192, interval_scale=1.06, inverse_depth=False,
-                 origin_size=False, light_idx=-1, image_scale=0.25, reverse=False, both=True, **kwargs):
+                 light_idx=-1, image_scale=0.25, reverse=False, both=True, have_depth=True, **kwargs):
         super(MVSDataset, self).__init__()
         self.datapath = datapath
         self.listfile = listfile
@@ -17,13 +17,13 @@ class MVSDataset(Dataset):
         self.ndepths = ndepths
         self.interval_scale = interval_scale
         self.inverse_depth = inverse_depth
-        self.origin_size = origin_size
         self.light_idx=light_idx
         self.image_scale = image_scale # use to resize image
         self.reverse = reverse
         self.both = both
-        print('dataset: inverse_depth {}, origin_size {}, light_idx:{}, image_scale:{}, reverse: {}, both: {}'.format(
-                    self.inverse_depth, self.origin_size, self.light_idx, self.image_scale, self.reverse, self.both))
+        self.have_depth = have_depth
+        print('dataset: inverse_depth {}, light_idx:{}, image_scale:{}, reverse: {}, both: {}'.format(
+                    self.inverse_depth, self.light_idx, self.image_scale, self.reverse, self.both))
         
         assert self.mode in ["train", "val", "test"]
         self.metas = self.build_list()
@@ -115,12 +115,15 @@ class MVSDataset(Dataset):
             # if i == 0:
             #     print('process in {}, {}'.format(idx, img_filename))
             proj_mat_filename = os.path.join(self.datapath, '{}/cams/{:0>8}_cam.txt'.format(scan, vid))
-            depth_filename = os.path.join(self.datapath, '{}/rendered_depth_maps/{:0>8}.pfm'.format(scan, vid))
             
-            if i == 0:
-                depth_name = depth_filename
-            #print('debug in dtu_yao', i, depth_filename)
+            if self.have_depth:
+                depth_filename = os.path.join(self.datapath, '{}/rendered_depth_maps/{:0>8}.pfm'.format(scan, vid))
+                if i == 0:
+                    depth_name = depth_filename
+            
             imgs.append(self.read_img(img_filename))
+            h = imgs[0].shape[0]
+            w = imgs[0].shape[1]
             intrinsics, extrinsics, depth_min, depth_interval = self.read_cam_file(proj_mat_filename)
 
             # multiply intrinsics and extrinsics to get projection matrix
@@ -140,21 +143,29 @@ class MVSDataset(Dataset):
                                             dtype=np.float32) # the set is [)
                     depth_end = depth_interval * (self.ndepths-1) + depth_min
                 
-                #mask = self.read_img(mask_filename)
-                depth = self.read_depth(depth_filename)
-                #mask = np.array((depth > depth_min+depth_interval) & (depth < depth_min+(self.ndepths-2)*depth_interval), dtype=np.float32)
-                mask = np.array((depth >= depth_min) & (depth <= depth_end), dtype=np.float32)
+                if self.have_depth:
+                    depth = self.read_depth(depth_filename)
+                    mask = np.array((depth >= depth_min) & (depth <= depth_end), dtype=np.float32)
+                else:
+                    mask = np.ones((h, w), dtype=np.float32)
         imgs = np.stack(imgs).transpose([0, 3, 1, 2])
         proj_matrices = np.stack(proj_matrices)
 
         if (flip_flag and self.both) or (self.reverse and not self.both):
             depth_values = np.array([depth_values[len(depth_values)-i-1]for i in range(len(depth_values))])
         
-        #print('img:{}, depth:{}, depth_values:{}, mask:{}, depth_interval:{}'.format(imgs.shape, depth.shape, depth_values.shape,mask.shape,depth_interval))
-        return {"imgs": imgs,
-                "proj_matrices": proj_matrices,
-                "depth": depth,
-                "depth_values": depth_values, # generate depth index
-                "mask": mask,
-                "depth_interval": depth_interval,
-                'name':depth_name,}
+        if self.have_depth:
+            return {"imgs": imgs,
+                    "proj_matrices": proj_matrices,
+                    "depth": depth,
+                    "depth_values": depth_values, # generate depth index
+                    "mask": mask,
+                    "depth_interval": depth_interval,
+                    }
+        else:
+            return {"imgs": imgs,
+                    "proj_matrices": proj_matrices,
+                    "depth_values": depth_values, # generate depth index
+                    "mask": mask,
+                    "depth_interval": depth_interval,
+                    }
