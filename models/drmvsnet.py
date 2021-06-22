@@ -34,9 +34,10 @@ class DrMVSNet(nn.Module):
         num_layers = 5
         kernel_size = [(3, 3) for i in range(num_layers)]
         
-        self.cost_regularization = UNetConvLSTM(input_size, input_dim, hidden_dim, kernel_size, num_layers,
-             batch_first=False, bias=True, return_all_layers=False, gn=self.gn)
+        #self.cost_regularization = UNetConvLSTM(input_size, input_dim, hidden_dim, kernel_size, num_layers,
+        #     batch_first=False, bias=True, return_all_layers=False, gn=self.gn)
     
+        self.cost_regularization = TransformerNet()
         # Cost Aggregation
         self.gatenet = gatenet(self.gn, 32)
 

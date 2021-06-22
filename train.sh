@@ -1,9 +1,9 @@
 #!/bin/bash
 data=$(date +"%m%d")
 n=4
-batch=8
-epochs=2
-d=8
+batch=2
+epochs=10
+d=128
 interval_scale=1.06
 lr=0.001
 lr_scheduler=cosinedecay
@@ -39,5 +39,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 /home/hadoop/scx/mvsnet/anaconda3/envs/drmvsnet/bin
         --numdepth=$d \
         --interval_scale=$interval_scale \
         --logdir=./logdir/${name} \
-        --savedir = ./checkpoints \
+        #--savedir = ./checkpoints \
         2>&1|tee ./${name}-${now}.log &
